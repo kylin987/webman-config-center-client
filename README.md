@@ -69,13 +69,7 @@ php vendor/bin/config-center-sync
 php vendor/bin/config-center-poll
 ```
 
-Redis 是可选的。如果希望发布后更快触发同步，可以额外安装 `predis/predis`：
-
-```bash
-composer require predis/predis
-```
-
-然后运行 Redis 发布事件监听，适合放在 sidecar 或独立进程中：
+Redis 是配置可选项。如果希望发布后更快触发同步，配置 `CONFIG_CENTER_REDIS_URL` 后运行 Redis 发布事件监听，适合放在 sidecar 或独立进程中：
 
 ```bash
 php vendor/bin/config-center-listen
@@ -95,6 +89,6 @@ Yhs\WebmanConfigCenter\ApplyAdapter::consume(config('plugin.kylin987.config-cent
 
 - `config-center-sync` 用于 initContainer 或应用启动前同步。
 - 默认只需要运行 `config-center-poll`，不依赖 Redis。
-- 如果需要更实时的发布通知，再安装 `predis/predis` 并运行 `config-center-listen`。
+- 如果需要更实时的发布通知，配置 `CONFIG_CENTER_REDIS_URL` 并运行 `config-center-listen`。
 - `config-center-listen` 和 `config-center-poll` 都建议运行在 sidecar 或独立进程中，不要放进业务 worker 阻塞执行。
 - 配置中心不可用时，客户端保留本地旧文件，下一次同步成功后再更新。

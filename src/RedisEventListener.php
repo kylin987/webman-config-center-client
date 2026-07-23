@@ -13,9 +13,6 @@ final class RedisEventListener
 
     public function run(): never
     {
-        if (!class_exists(Client::class)) {
-            throw new RuntimeException('使用 config-center-listen 需要先安装可选依赖：composer require predis/predis');
-        }
         $delay = 1;
         while (true) {
             try {
