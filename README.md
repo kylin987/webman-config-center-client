@@ -10,13 +10,21 @@
 composer require kylin987/webman-config-center-client
 ```
 
+安装后，Webman 会自动复制插件配置到：
+
+```text
+config/plugin/kylin987/config-center/
+```
+
+主要配置文件是：
+
+```text
+config/plugin/kylin987/config-center/config.php
+```
+
 ## 配置
 
-复制示例配置到业务项目：
-
-```bash
-cp vendor/kylin987/webman-config-center-client/examples/config-center.php config/config-center.php
-```
+打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码、Redis 地址和监听项。
 
 常用环境变量：
 
@@ -30,7 +38,7 @@ CONFIG_CENTER_STATE_DIR=/app/runtime/config-center
 CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
 ```
 
-`config/config-center.php` 里的 `items` 是白名单，只有声明过的配置才会被写入本地文件：
+`items` 是白名单，只有声明过的配置才会被写入本地文件：
 
 ```php
 [
@@ -67,7 +75,7 @@ php vendor/bin/config-center-poll
 如果项目需要配置更新后执行 reload，可以在业务项目独立 Webman process 的定时器里调用：
 
 ```php
-Yhs\WebmanConfigCenter\ApplyAdapter::consume(config('config-center'));
+Yhs\WebmanConfigCenter\ApplyAdapter::consume(config('plugin.kylin987.config-center.config'));
 ```
 
 `ApplyAdapter` 只接受共享状态目录中带 HMAC 的请求，并且只会执行当前业务项目白名单里声明的 `reload_command`。
