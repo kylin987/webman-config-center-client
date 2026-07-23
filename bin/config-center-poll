@@ -1,17 +1,26 @@
 #!/usr/bin/env php
 <?php
 
-$autoload = $_composer_autoload_path ?? dirname(__DIR__, 3) . '/autoload.php';
+$autoload = $_composer_autoload_path ?? (is_file(dirname(__DIR__) . '/vendor/autoload.php') ? dirname(__DIR__) . '/vendor/autoload.php' : dirname(__DIR__, 3) . '/autoload.php');
 require $autoload;
 
 $config = Yhs\WebmanConfigCenter\ConfigLoader::load();
 $interval = max(10, (int) ($config['poll_interval'] ?? 60));
 $sync = new Yhs\WebmanConfigCenter\ConfigSynchronizer($config);
+$logger = new Yhs\WebmanConfigCenter\ConfigCenterLogger($config);
+$wasFailing = false;
 while (true) {
     try {
         $sync->syncAll();
+        if ($wasFailing) {
+            $logger->info('config-center poll recovered');
+        }
+        $wasFailing = false;
     } catch (\Throwable $exception) {
-        fwrite(STDERR, 'config-center poll failed: ' . $exception->getMessage() . PHP_EOL);
+        $wasFailing = true;
+        $logger->warningThrottled('poll.failed', 'config-center poll failed; keep using local config files', [
+            'exception' => $exception,
+        ]);
     }
     sleep($interval);
 }

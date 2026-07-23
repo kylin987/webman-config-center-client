@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-$autoload = $_composer_autoload_path ?? dirname(__DIR__, 3) . '/autoload.php';
+$autoload = $_composer_autoload_path ?? (is_file(dirname(__DIR__) . '/vendor/autoload.php') ? dirname(__DIR__) . '/vendor/autoload.php' : dirname(__DIR__, 3) . '/autoload.php');
 require $autoload;
 
 $config = Yhs\WebmanConfigCenter\ConfigLoader::load();

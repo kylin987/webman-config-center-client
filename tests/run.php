@@ -3,6 +3,7 @@
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use Yhs\WebmanConfigCenter\ConfigItem;
+use Yhs\WebmanConfigCenter\ConfigCenterLogger;
 use Yhs\WebmanConfigCenter\ConfigSynchronizer;
 use Yhs\WebmanConfigCenter\ContentValidator;
 
@@ -58,6 +59,7 @@ $router = $tmp . '/router.php';
 $configRoot = $tmp . '/config';
 $stateDir = $tmp . '/state';
 $serverProcess = null;
+$originalErrorLog = ini_get('error_log');
 
 try {
     mkdir($tmp, 0750, true);
@@ -142,7 +144,46 @@ PHP);
     $result = $synchronizer->sync($mapping);
     assertTrue($result['status'] === 'repaired', '同版本但本地内容不一致时应返回 repaired');
     assertTrue(file_get_contents($path) === $servedContent, '本地文件被改坏后未自动修复');
+
+    $logPath = $tmp . '/client.log';
+    ini_set('error_log', $logPath);
+    $logger = new ConfigCenterLogger(['log_channel' => 'default', 'log_throttle_seconds' => 300]);
+    $logger->warningThrottled('test.throttle', 'config-center test throttled warning', ['x' => 1]);
+    $logger->warningThrottled('test.throttle', 'config-center test throttled warning', ['x' => 2]);
+    $logContent = (string) file_get_contents($logPath);
+    assertTrue(substr_count($logContent, 'config-center test throttled warning') === 1, '日志限频未生效');
+
+    $commandRoot = $tmp . '/command-root';
+    mkdir($commandRoot . '/config/plugin/kylin987/config-center', 0750, true);
+    file_put_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php', <<<'PHP'
+<?php
+return [
+    'endpoint' => 'http://127.0.0.1:1',
+    'username' => 'client',
+    'password' => 'secret',
+    'namespace' => 'public',
+    'config_root' => __DIR__,
+    'state_dir' => sys_get_temp_dir() . '/config-center-client-test-state',
+    'connect_timeout' => 0.1,
+    'timeout' => 0.1,
+    'log_channel' => 'default',
+    'log_throttle_seconds' => 300,
+    'fail_on_error' => false,
+    'items' => [
+        ['group' => 'DEFAULT_GROUP', 'data_id' => 'app.php', 'format' => 'php', 'path' => 'app.php'],
+    ],
+];
+PHP);
+    $syncCommand = PHP_BINARY . ' ' . escapeshellarg(dirname(__DIR__) . '/bin/config-center-sync');
+    exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);
+    assertTrue($exitCode === 0, '默认配置下 config-center-sync 失败不应阻断启动');
+
+    $strictConfig = str_replace("'fail_on_error' => false", "'fail_on_error' => true", (string) file_get_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php'));
+    file_put_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php', $strictConfig);
+    exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);
+    assertTrue($exitCode === 1, 'fail_on_error=true 时 config-center-sync 失败应返回非 0');
 } finally {
+    ini_set('error_log', $originalErrorLog === false ? '' : $originalErrorLog);
     if (is_resource($serverProcess)) {
         proc_terminate($serverProcess);
         proc_close($serverProcess);

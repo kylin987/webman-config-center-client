@@ -37,6 +37,8 @@ CONFIG_CENTER_PASSWORD=your-client-password
 CONFIG_CENTER_CONFIG_ROOT=/app/config/nacos
 CONFIG_CENTER_STATE_DIR=/app/runtime/config-center
 CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
+CONFIG_CENTER_LOG_CHANNEL=default
+CONFIG_CENTER_LOG_THROTTLE_SECONDS=300
 ```
 
 如果需要 Redis Pub/Sub 实时通知，再额外配置：
@@ -94,4 +96,6 @@ Yhs\WebmanConfigCenter\ApplyAdapter::consume(config('plugin.kylin987.config-cent
 - 如果需要更实时的发布通知，配置 `CONFIG_CENTER_REDIS_URL` 并运行 `config-center-listen`。
 - `config-center-listen` 和 `config-center-poll` 都建议运行在 sidecar 或独立进程中，不要放进业务 worker 阻塞执行。
 - 配置中心不可用时，客户端保留本地旧文件，下一次同步成功后再更新。
+- 配置中心不可用时，`config-center-poll` 和 `config-center-listen` 不会退出，也不会连续刷 STDERR；错误会写入 Webman 日志，默认 channel 为 `default`，同类错误默认 300 秒最多写一次。
+- 如果希望启动前同步失败时阻断启动，可以配置 `CONFIG_CENTER_FAIL_ON_ERROR=1`；默认不阻断，适合配置文件已经随项目发布或已经落地到本地的场景。
 - 如果服务端版本号未变化，但本地配置文件被误删或内容被手动改坏，客户端会按服务端内容自动修复本地文件，并返回 `repaired` 状态。
