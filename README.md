@@ -4,6 +4,8 @@
 
 它负责从 Config Center 服务端拉取配置，校验内容格式，然后写入业务项目本地配置目录。远端异常时会保留本地旧配置，避免因为配置中心短暂不可用导致业务 worker 退出。
 
+配套服务端仓库：[kylin987/webman-config-center](https://github.com/kylin987/webman-config-center)
+
 ## 安装
 
 ```bash
