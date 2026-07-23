@@ -1,5 +1,5 @@
 {
-  "name": "yhs/webman-config-center",
+  "name": "kylin987/webman-config-center-client",
   "description": "Lightweight, cache-first configuration client for Webman.",
   "type": "library",
   "license": "MIT",

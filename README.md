@@ -1,4 +1,4 @@
-# yhs/webman-config-center
+# kylin987/webman-config-center-client
 
 面向 Webman 项目的轻量配置中心客户端。
 
@@ -7,7 +7,7 @@
 ## 安装
 
 ```bash
-composer require yhs/webman-config-center
+composer require kylin987/webman-config-center-client
 ```
 
 ## 配置
@@ -15,7 +15,7 @@ composer require yhs/webman-config-center
 复制示例配置到业务项目：
 
 ```bash
-cp vendor/yhs/webman-config-center/examples/config-center.php config/config-center.php
+cp vendor/kylin987/webman-config-center-client/examples/config-center.php config/config-center.php
 ```
 
 常用环境变量：
