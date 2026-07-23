@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+
+$autoload = $_composer_autoload_path ?? dirname(__DIR__, 3) . '/autoload.php';
+require $autoload;
+
+$path = getcwd() . '/config/config-center.php';
+if (!is_file($path)) {
+    fwrite(STDERR, "缺少 config/config-center.php\n");
+    exit(2);
+}
+$config = require $path;
+$sync = new Yhs\WebmanConfigCenter\ConfigSynchronizer($config);
+foreach ($sync->syncAll() as $result) {
+    fwrite(STDOUT, json_encode($result, JSON_UNESCAPED_UNICODE) . PHP_EOL);
+}
