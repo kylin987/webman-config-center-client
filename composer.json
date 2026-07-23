@@ -7,8 +7,10 @@
     "php": ">=8.1",
     "guzzlehttp/guzzle": "^7.10",
     "nikic/php-parser": "^5.0",
-    "symfony/yaml": "^6.4",
-    "predis/predis": "^2.2"
+    "symfony/yaml": "^6.4"
+  },
+  "suggest": {
+    "predis/predis": "Required only when using config-center-listen Redis Pub/Sub realtime updates."
   },
   "autoload": {
     "psr-4": {

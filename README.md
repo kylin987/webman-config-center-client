@@ -24,7 +24,7 @@ config/plugin/kylin987/config-center/config.php
 
 ## 配置
 
-打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码、Redis 地址和监听项。
+打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码和监听项。
 
 常用环境变量：
 
@@ -32,10 +32,15 @@ config/plugin/kylin987/config-center/config.php
 CONFIG_CENTER_ENDPOINT=http://config-center.example.com/
 CONFIG_CENTER_USERNAME=your-client-username
 CONFIG_CENTER_PASSWORD=your-client-password
-CONFIG_CENTER_REDIS_URL=tcp://redis.example.com:6379
 CONFIG_CENTER_CONFIG_ROOT=/app/config/nacos
 CONFIG_CENTER_STATE_DIR=/app/runtime/config-center
 CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
+```
+
+如果需要 Redis Pub/Sub 实时通知，再额外配置：
+
+```bash
+CONFIG_CENTER_REDIS_URL=tcp://redis.example.com:6379
 ```
 
 `items` 是白名单，只有声明过的配置才会被写入本地文件：
@@ -58,16 +63,22 @@ CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
 php vendor/bin/config-center-sync
 ```
 
-监听 Redis 发布事件，适合放在 sidecar 或独立进程中：
-
-```bash
-php vendor/bin/config-center-listen
-```
-
-定时轮询补偿，避免 Redis Pub/Sub 短暂断线后漏更新：
+定时轮询配置中心，推荐默认使用：
 
 ```bash
 php vendor/bin/config-center-poll
+```
+
+Redis 是可选的。如果希望发布后更快触发同步，可以额外安装 `predis/predis`：
+
+```bash
+composer require predis/predis
+```
+
+然后运行 Redis 发布事件监听，适合放在 sidecar 或独立进程中：
+
+```bash
+php vendor/bin/config-center-listen
 ```
 
 ## Webman 内应用更新
@@ -83,5 +94,7 @@ Yhs\WebmanConfigCenter\ApplyAdapter::consume(config('plugin.kylin987.config-cent
 ## 运行建议
 
 - `config-center-sync` 用于 initContainer 或应用启动前同步。
-- `config-center-listen` 和 `config-center-poll` 建议运行在 sidecar 或独立进程中，不要放进业务 worker 阻塞执行。
+- 默认只需要运行 `config-center-poll`，不依赖 Redis。
+- 如果需要更实时的发布通知，再安装 `predis/predis` 并运行 `config-center-listen`。
+- `config-center-listen` 和 `config-center-poll` 都建议运行在 sidecar 或独立进程中，不要放进业务 worker 阻塞执行。
 - 配置中心不可用时，客户端保留本地旧文件，下一次同步成功后再更新。

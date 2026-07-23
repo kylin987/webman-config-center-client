@@ -9,7 +9,9 @@ return [
     'state_dir' => getenv('CONFIG_CENTER_STATE_DIR') ?: runtime_path() . '/config-center',
     'connect_timeout' => 3,
     'timeout' => 8,
-    'redis_url' => getenv('CONFIG_CENTER_REDIS_URL') ?: 'tcp://127.0.0.1:6379',
+    // 可选：配置后可运行 config-center-listen 监听 Redis Pub/Sub，实现更实时的配置更新。
+    // 不配置时，使用 config-center-poll 轮询即可。
+    'redis_url' => getenv('CONFIG_CENTER_REDIS_URL') ?: '',
     'event_channel' => getenv('CONFIG_CENTER_EVENT_CHANNEL') ?: 'config-center:changed',
     'poll_interval' => (int) (getenv('CONFIG_CENTER_POLL_INTERVAL') ?: 60),
     'apply_secret' => getenv('CONFIG_CENTER_APPLY_SECRET') ?: '',

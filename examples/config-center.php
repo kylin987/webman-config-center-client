@@ -9,7 +9,7 @@ return [
     'state_dir' => getenv('CONFIG_CENTER_STATE_DIR') ?: runtime_path() . '/config-center',
     'connect_timeout' => 3,
     'timeout' => 8,
-    'redis_url' => getenv('CONFIG_CENTER_REDIS_URL') ?: 'tls://redis.example.com:6379',
+    'redis_url' => getenv('CONFIG_CENTER_REDIS_URL') ?: '',
     'event_channel' => 'config-center:changed',
     'poll_interval' => 60,
     'apply_secret' => getenv('CONFIG_CENTER_APPLY_SECRET') ?: '',

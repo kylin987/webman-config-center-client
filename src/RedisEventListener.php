@@ -13,11 +13,14 @@ final class RedisEventListener
 
     public function run(): never
     {
+        if (!class_exists(Client::class)) {
+            throw new RuntimeException('使用 config-center-listen 需要先安装可选依赖：composer require predis/predis');
+        }
         $delay = 1;
         while (true) {
             try {
                 $url = (string) ($this->config['redis_url'] ?? '');
-                if ($url === '') throw new RuntimeException('未配置 redis_url');
+                if ($url === '') throw new RuntimeException('未配置 redis_url；如不需要实时监听，请使用 config-center-poll 轮询');
                 $client = new Client($url, ['read_write_timeout' => 0]);
                 $loop = $client->pubSubLoop();
                 $loop->subscribe((string) ($this->config['event_channel'] ?? 'config-center:changed'));
@@ -45,4 +48,3 @@ final class RedisEventListener
         }
     }
 }
-
