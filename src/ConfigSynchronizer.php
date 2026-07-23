@@ -52,15 +52,17 @@ final class ConfigSynchronizer
         $namespace = (string) ($mapping['namespace'] ?? $this->config['namespace'] ?? 'public');
         $item = $this->api->fetch($namespace, (string) $mapping['group'], (string) $mapping['data_id']);
         $state = $this->state($item->key());
-        if ($item->revision <= (int) ($state['downloaded_revision'] ?? 0)) {
+        $downloadedRevision = (int) ($state['downloaded_revision'] ?? 0);
+        $path = $this->safePath((string) $mapping['path']);
+        if ($item->revision <= $downloadedRevision && $this->localFileMatches($path, $item->md5)) {
             return ['key' => $item->key(), 'status' => 'unchanged', 'revision' => $item->revision];
         }
         $this->validator->validate($item, (string) $mapping['format']);
-        $path = $this->safePath((string) $mapping['path']);
         $this->writer->write($path, $item->content);
         $this->writeState($item->key(), ['downloaded_revision' => $item->revision, 'md5' => $item->md5]);
         (new ApplyRequestWriter(rtrim((string) $this->config['state_dir'], '/'), (string) ($this->config['apply_secret'] ?? '')))->write($item->key(), $item->revision);
-        return ['key' => $item->key(), 'status' => 'updated', 'revision' => $item->revision, 'path' => $path];
+        $status = $item->revision <= $downloadedRevision ? 'repaired' : 'updated';
+        return ['key' => $item->key(), 'status' => $status, 'revision' => $item->revision, 'path' => $path];
     }
 
     private function safePath(string $relativePath): string
@@ -70,6 +72,15 @@ final class ConfigSynchronizer
             throw new RuntimeException('配置文件路径不在允许范围内');
         }
         return $root . '/' . ltrim($relativePath, '/');
+    }
+
+    private function localFileMatches(string $path, string $md5): bool
+    {
+        if ($md5 === '' || !is_file($path)) {
+            return false;
+        }
+        $hash = hash_file('md5', $path);
+        return is_string($hash) && hash_equals(strtolower($md5), strtolower($hash));
     }
 
     private function state(string $key): array
