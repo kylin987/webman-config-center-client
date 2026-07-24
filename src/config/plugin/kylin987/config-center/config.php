@@ -35,6 +35,9 @@ return [
     // 轮询间隔，单位秒。自动进程和手动 config-center-poll 命令都会使用。
     'poll_interval' => (int) (getenv('CONFIG_CENTER_POLL_INTERVAL') ?: 60),
 
+    // 轮询随机抖动秒数，避免多个客户端在同一秒集中请求；默认取 poll_interval 的一半，最多 30 秒。
+    'poll_jitter_seconds' => getenv('CONFIG_CENTER_POLL_JITTER_SECONDS') === false ? null : (int) getenv('CONFIG_CENTER_POLL_JITTER_SECONDS'),
+
     // reload 请求签名密钥。只有需要 ApplyAdapter 执行 reload_command 时才需要配置。
     'apply_secret' => getenv('CONFIG_CENTER_APPLY_SECRET') ?: '',
 
