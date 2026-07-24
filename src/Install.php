@@ -13,6 +13,7 @@ class Install
     public static function install(): void
     {
         static::installByRelation();
+        static::installConfigCacheDirectory();
     }
 
     public static function uninstall(): void
@@ -30,6 +31,23 @@ class Install
                 }
             }
             copy_dir(__DIR__ . '/' . $source, base_path() . '/' . $dest);
+        }
+    }
+
+    public static function installConfigCacheDirectory(): void
+    {
+        $sourceDirectory = __DIR__ . '/config/cc';
+        $destDirectory = base_path() . '/config/cc';
+        if (!is_dir($destDirectory)) {
+            mkdir($destDirectory, 0777, true);
+        }
+
+        foreach (['.gitignore', 'app.php'] as $filename) {
+            $source = $sourceDirectory . '/' . $filename;
+            $dest = $destDirectory . '/' . $filename;
+            if (is_file($source) && !file_exists($dest)) {
+                copy($source, $dest);
+            }
         }
     }
 

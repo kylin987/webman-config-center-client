@@ -18,6 +18,16 @@ composer require kylin987/webman-config-center-client
 config/plugin/kylin987/config-center/
 ```
 
+同时会创建配置落地目录：
+
+```text
+config/cc/
+├── .gitignore
+└── app.php
+```
+
+其中 `config/cc/app.php` 是占位配置，保证 `config('cc.*')` 这类读取方式在远端配置同步前也可用；其他同步生成的配置文件默认不会提交到 git。
+
 主要配置文件是：
 
 ```text
@@ -35,7 +45,7 @@ config/plugin/kylin987/config-center/listeners.php
 CONFIG_CENTER_ENDPOINT=http://config-center.example.com/
 CONFIG_CENTER_USERNAME=your-client-username
 CONFIG_CENTER_PASSWORD=your-client-password
-CONFIG_CENTER_CONFIG_ROOT=/app/config/nacos
+CONFIG_CENTER_CONFIG_ROOT=/app/config/cc
 CONFIG_CENTER_STATE_DIR=/app/runtime/config-center
 CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
 CONFIG_CENTER_LOG_CHANNEL=default

@@ -5,7 +5,7 @@ return [
     'username' => getenv('CONFIG_CENTER_USERNAME') ?: '',
     'password' => getenv('CONFIG_CENTER_PASSWORD') ?: '',
     'namespace' => getenv('CONFIG_CENTER_NAMESPACE') ?: 'public',
-    'config_root' => getenv('CONFIG_CENTER_CONFIG_ROOT') ?: base_path() . '/config/nacos',
+    'config_root' => getenv('CONFIG_CENTER_CONFIG_ROOT') ?: base_path() . '/config/cc',
     'state_dir' => getenv('CONFIG_CENTER_STATE_DIR') ?: runtime_path() . '/config-center',
     'connect_timeout' => 3,
     'timeout' => 8,
