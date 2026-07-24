@@ -6,6 +6,8 @@
 
 配套服务端仓库：[kylin987/webman-config-center](https://github.com/kylin987/webman-config-center)
 
+Webman 项目从 Nacos 迁移到 Config Center 的步骤见：[docs/webman-nacos-to-config-center-migration.md](docs/webman-nacos-to-config-center-migration.md)
+
 ## 安装
 
 ```bash
