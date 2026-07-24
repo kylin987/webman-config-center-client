@@ -76,7 +76,7 @@ CONFIG_CENTER_LOG_THROTTLE_SECONDS=300
 - `CONFIG_CENTER_POLL_INTERVAL=60` 表示基础轮询间隔是 60 秒。
 - `CONFIG_CENTER_POLL_JITTER_SECONDS=30` 表示每次实际轮询会随机落在 30~90 秒之间。
 - 如果不配置 `CONFIG_CENTER_POLL_JITTER_SECONDS`，默认取 `poll_interval` 的一半，最多 30 秒。
-- 自动进程启动后的第一次同步也会随机延迟 0~jitter 秒，避免 Pod 同时启动时一起请求。
+- 自动进程启动后会立即同步一次，方便启动后马上生成本地配置文件；后续轮询会带随机抖动。
 
 如果需要 Redis Pub/Sub 实时通知，再额外配置：
 

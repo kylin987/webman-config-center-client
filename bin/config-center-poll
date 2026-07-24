@@ -14,7 +14,6 @@ $jitter = min($jitter, max(0, $interval - 1));
 $sync = new Kylin987\WebmanConfigCenter\ConfigSynchronizer($config);
 $logger = new Kylin987\WebmanConfigCenter\ConfigCenterLogger($config);
 $wasFailing = false;
-sleep(random_int(0, $jitter));
 while (true) {
     try {
         $sync->syncAll();

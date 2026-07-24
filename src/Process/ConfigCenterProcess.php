@@ -34,7 +34,8 @@ final class ConfigCenterProcess
         $this->logger = new ConfigCenterLogger($this->config);
         $this->synchronizer = new ConfigSynchronizer($this->config);
 
-        $this->scheduleNextPoll(true);
+        $this->syncAll();
+        $this->scheduleNextPoll();
 
         if ((string) ($this->config['redis_url'] ?? '') !== '') {
             Timer::add(0.1, fn () => $this->connectRedis(), [], false);
@@ -62,22 +63,18 @@ final class ConfigCenterProcess
         }
     }
 
-    private function scheduleNextPoll(bool $initial = false): void
+    private function scheduleNextPoll(): void
     {
-        Timer::add($this->pollDelay($initial), function () {
+        Timer::add($this->pollDelay(), function () {
             $this->syncAll();
             $this->scheduleNextPoll();
         }, [], false);
     }
 
-    private function pollDelay(bool $initial = false): float
+    private function pollDelay(): float
     {
         $interval = max(10, (int) ($this->config['poll_interval'] ?? 60));
         $jitter = $this->pollJitter($interval);
-
-        if ($initial) {
-            return max(0.1, random_int(0, $jitter));
-        }
 
         return (float) random_int(max(1, $interval - $jitter), $interval + $jitter);
     }
