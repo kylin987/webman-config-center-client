@@ -20,9 +20,9 @@ final class RedisEventListener
         $wasDisconnected = false;
         while (true) {
             try {
-                $url = (string) ($this->config['redis_url'] ?? '');
-                if ($url === '') throw new RuntimeException('未配置 redis_url；如不需要实时监听，请使用 config-center-poll 轮询');
-                $client = new Client($url, ['read_write_timeout' => 0]);
+                $redis = RedisConnectionConfig::fromConfig($this->config);
+                if (!$redis['enabled']) throw new RuntimeException('未启用 Redis 订阅；如不需要实时监听，请使用 config-center-poll 轮询');
+                $client = new Client(RedisConnectionConfig::toPredisParameters($redis), ['read_write_timeout' => 0]);
                 $loop = $client->pubSubLoop();
                 $loop->subscribe((string) ($this->config['event_channel'] ?? 'config-center:changed'));
                 if ($wasDisconnected) {

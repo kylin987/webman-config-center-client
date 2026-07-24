@@ -56,38 +56,49 @@ return [
 ];
 ```
 
-常用环境变量：
+推荐只把服务端地址、客户端账号密码等环境相关或敏感信息放到 `.env`：
 
 ```bash
 CONFIG_CENTER_ENDPOINT=http://config-center.example.com/
 CONFIG_CENTER_USERNAME=your-client-username
 CONFIG_CENTER_PASSWORD=your-client-password
-CONFIG_CENTER_CONFIG_ROOT=/app/config/cc
-CONFIG_CENTER_STATE_DIR=/app/runtime/config-center
-CONFIG_CENTER_POLL_INTERVAL=60
-CONFIG_CENTER_POLL_JITTER_SECONDS=30
 CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
-CONFIG_CENTER_LOG_CHANNEL=default
-CONFIG_CENTER_LOG_THROTTLE_SECONDS=300
+CONFIG_CENTER_REDIS_PASSWORD=your-redis-password
 ```
+
+其他普通配置建议直接写在 `config.php` 中，例如 namespace、Redis 地址、DB、频道、轮询间隔、日志 channel 等。
 
 轮询默认带随机抖动，避免几十个客户端集中在同一秒请求服务端：
 
-- `CONFIG_CENTER_POLL_INTERVAL=60` 表示基础轮询间隔是 60 秒。
-- `CONFIG_CENTER_POLL_JITTER_SECONDS=30` 表示每次实际轮询会随机落在 30~90 秒之间。
-- 如果不配置 `CONFIG_CENTER_POLL_JITTER_SECONDS`，默认取 `poll_interval` 的一半，最多 30 秒。
+- `poll_interval=60` 表示基础轮询间隔是 60 秒。
+- `poll_jitter_seconds=30` 表示每次实际轮询会随机落在 30~90 秒之间。
+- 如果把 `poll_jitter_seconds` 配成 `null`，默认取 `poll_interval` 的一半，最多 30 秒。
 - 自动进程启动后会立即同步一次，方便启动后马上生成本地配置文件；后续轮询会带随机抖动。
 
-如果需要 Redis Pub/Sub 实时通知，再额外配置：
+如果需要 Redis Pub/Sub 实时通知，修改 `config.php`：
 
-```bash
-CONFIG_CENTER_REDIS_URL=tcp://redis.example.com:6379
+```php
+'redis' => [
+    'enable' => true,
+    'host' => 'redis.default.svc',
+    'port' => 6379,
+    'password' => getenv('CONFIG_CENTER_REDIS_PASSWORD') ?: '',
+    'database' => 0,
+],
 ```
 
-配置 `CONFIG_CENTER_REDIS_URL` 后，自动进程会同时做两件事：
+启用 Redis 后，自动进程会同时做两件事：
 
 - 按 `poll_interval` 定时轮询，作为兜底。
 - 订阅 Redis Pub/Sub，服务端发布配置后立即收到通知并同步。
+
+旧版或高级用法仍然兼容 `redis_url`：
+
+```php
+'redis_url' => 'tcp://:redis-password@redis.example.com:6379/0',
+```
+
+如果配置文件里存在 `redis` 数组，并且明确设置了 `enable`，会优先按 `redis` 数组判断是否启用。
 
 打开 `config/plugin/kylin987/config-center/listeners.php`，维护需要监听/同步的配置文件。
 
@@ -231,8 +242,8 @@ $config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
 - 默认使用插件自动注册的 `config-center` 进程，不需要额外 sidecar。
 - 默认轮询会带随机抖动，多个 Pod 不会固定在同一秒请求服务端。
 - `config-center-sync` 可以用于手动调试或启动前同步一次。
-- 如果需要更实时的发布通知，配置 `CONFIG_CENTER_REDIS_URL` 即可，自动进程会同时订阅 Redis。
+- 如果需要更实时的发布通知，开启 `redis.enable` 即可，自动进程会同时订阅 Redis。
 - 配置中心不可用时，客户端保留本地旧文件，下一次同步成功后再更新。
 - 配置中心不可用时，自动轮询进程、`config-center-poll` 和 `config-center-listen` 都不会连续刷屏；错误会写入 Webman 日志，默认 channel 为 `default`，同类错误默认 300 秒最多写一次。
-- 如果希望启动前同步失败时阻断启动，可以配置 `CONFIG_CENTER_FAIL_ON_ERROR=1`；默认不阻断，适合配置文件已经随项目发布或已经落地到本地的场景。
+- 如果希望启动前同步失败时阻断启动，可以配置 `fail_on_error=true`；默认不阻断，适合配置文件已经随项目发布或已经落地到本地的场景。
 - 如果服务端版本号未变化，但本地配置文件被误删或内容被手动改坏，客户端会按服务端内容自动修复本地文件，并返回 `repaired` 状态。

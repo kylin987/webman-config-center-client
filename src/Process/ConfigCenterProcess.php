@@ -5,6 +5,7 @@ namespace Kylin987\WebmanConfigCenter\Process;
 use Kylin987\WebmanConfigCenter\ConfigCenterLogger;
 use Kylin987\WebmanConfigCenter\ConfigLoader;
 use Kylin987\WebmanConfigCenter\ConfigSynchronizer;
+use Kylin987\WebmanConfigCenter\RedisConnectionConfig;
 use RuntimeException;
 use Workerman\Timer;
 use Workerman\Worker;
@@ -37,7 +38,7 @@ final class ConfigCenterProcess
         $this->syncAll();
         $this->scheduleNextPoll();
 
-        if ((string) ($this->config['redis_url'] ?? '') !== '') {
+        if (RedisConnectionConfig::isEnabled($this->config)) {
             Timer::add(0.1, fn () => $this->connectRedis(), [], false);
         }
     }
@@ -94,9 +95,9 @@ final class ConfigCenterProcess
         $this->closeRedis();
 
         try {
-            $parts = $this->parseRedisUrl((string) ($this->config['redis_url'] ?? ''));
+            $parts = RedisConnectionConfig::fromConfig($this->config);
             $socket = @stream_socket_client(
-                'tcp://' . $parts['host'] . ':' . $parts['port'],
+                $parts['scheme'] . '://' . $parts['host'] . ':' . $parts['port'],
                 $errno,
                 $error,
                 3,
@@ -133,29 +134,6 @@ final class ConfigCenterProcess
             ]);
             $this->scheduleRedisReconnect();
         }
-    }
-
-    /**
-     * @return array{host:string,port:int,password:string,database:int|null}
-     */
-    private function parseRedisUrl(string $url): array
-    {
-        $parts = parse_url($url);
-        if (!is_array($parts) || empty($parts['host'])) {
-            throw new RuntimeException('redis_url 格式不正确');
-        }
-
-        $database = null;
-        if (!empty($parts['path'])) {
-            $database = (int) ltrim($parts['path'], '/');
-        }
-
-        return [
-            'host' => (string) $parts['host'],
-            'port' => (int) ($parts['port'] ?? 6379),
-            'password' => isset($parts['pass']) ? rawurldecode((string) $parts['pass']) : '',
-            'database' => $database,
-        ];
     }
 
     private function onRedisReadable($stream): void
