@@ -32,12 +32,40 @@ final class ConfigApiClient
             'query' => compact('namespace', 'group', 'dataId'),
         ]);
         if ($response->getStatusCode() !== 200) {
-            throw new RuntimeException('配置服务读取失败，HTTP ' . $response->getStatusCode());
+            throw new RuntimeException($this->errorMessage(
+                '配置服务读取失败',
+                $response->getStatusCode(),
+                (string) $response->getBody(),
+                $namespace,
+                $group,
+                $dataId
+            ));
         }
-        $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+        $rawBody = (string) $response->getBody();
+        try {
+            $body = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException($this->errorMessage(
+                '配置服务返回无效 JSON',
+                $response->getStatusCode(),
+                $rawBody,
+                $namespace,
+                $group,
+                $dataId
+            ), 0, $exception);
+        }
+
         $data = $body['data'] ?? null;
         if (($body['code'] ?? -1) !== 0 || !is_array($data)) {
-            throw new RuntimeException('配置服务返回无效响应');
+            throw new RuntimeException($this->errorMessage(
+                '配置服务返回错误',
+                $response->getStatusCode(),
+                $rawBody,
+                $namespace,
+                $group,
+                $dataId
+            ));
         }
         return new ConfigItem(
             (string) ($data['namespace'] ?? ''),
@@ -48,5 +76,51 @@ final class ConfigApiClient
             (int) ($data['revision'] ?? 0),
             (string) ($data['md5'] ?? ''),
         );
+    }
+
+    private function errorMessage(string $prefix, int $statusCode, string $body, string $namespace, string $group, string $dataId): string
+    {
+        $message = $prefix . ' [' . $namespace . '/' . $group . '/' . $dataId . ']，HTTP ' . $statusCode;
+        $detail = $this->responseDetail($body);
+
+        return $detail === '' ? $message : $message . '：' . $detail;
+    }
+
+    private function responseDetail(string $body): string
+    {
+        $body = trim($body);
+        if ($body === '') {
+            return '';
+        }
+
+        try {
+            $json = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+            if (is_array($json)) {
+                foreach (['message', 'msg', 'error'] as $field) {
+                    if (isset($json[$field]) && is_scalar($json[$field]) && trim((string) $json[$field]) !== '') {
+                        return $this->shorten((string) $json[$field]);
+                    }
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        $plain = trim((string) preg_replace('/\s+/u', ' ', strip_tags($body)));
+        return $this->shorten($plain);
+    }
+
+    private function shorten(string $message): string
+    {
+        $message = trim($message);
+        if ($message === '') {
+            return '';
+        }
+
+        $limit = 300;
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            return mb_strlen($message, 'UTF-8') > $limit ? mb_substr($message, 0, $limit, 'UTF-8') . '...' : $message;
+        }
+
+        return strlen($message) > $limit ? substr($message, 0, $limit) . '...' : $message;
     }
 }
