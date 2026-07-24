@@ -6,9 +6,12 @@ use RuntimeException;
 
 final class ConfigLoader
 {
+    private static bool $envLoaded = false;
+
     public static function load(?string $basePath = null): array
     {
         $basePath = rtrim($basePath ?: getcwd(), '/');
+        self::loadEnv($basePath);
         $paths = [
             $basePath . '/config/plugin/kylin987/config-center/config.php',
             $basePath . '/config/config-center.php',
@@ -43,5 +46,20 @@ final class ConfigLoader
 
         $config['items'] = $listeners;
         return $config;
+    }
+
+    private static function loadEnv(string $basePath): void
+    {
+        if (self::$envLoaded || !is_file($basePath . '/.env') || !class_exists('\\Dotenv\\Dotenv')) {
+            return;
+        }
+
+        if (method_exists('\\Dotenv\\Dotenv', 'createUnsafeMutable')) {
+            \Dotenv\Dotenv::createUnsafeMutable($basePath)->load();
+        } else {
+            \Dotenv\Dotenv::createMutable($basePath)->load();
+        }
+
+        self::$envLoaded = true;
     }
 }
