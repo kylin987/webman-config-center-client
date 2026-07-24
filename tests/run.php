@@ -200,18 +200,15 @@ PHP);
     exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);
     assertTrue($exitCode === 1, 'fail_on_error=true 时 config-center-sync 失败应返回非 0');
 
-    $legacyRoot = $tmp . '/legacy-root';
-    mkdir($legacyRoot . '/config/plugin/kylin987/config-center', 0750, true);
-    file_put_contents($legacyRoot . '/config/plugin/kylin987/config-center/config.php', <<<'PHP'
-<?php
-return [
-    'items' => [
-        ['group' => 'DEFAULT_GROUP', 'data_id' => 'legacy.php', 'format' => 'php', 'path' => 'legacy.php'],
-    ],
-];
-PHP);
-    $legacyLoaded = ConfigLoader::load($legacyRoot);
-    assertTrue(count($legacyLoaded['items']) === 1 && $legacyLoaded['items'][0]['data_id'] === 'legacy.php', '旧版 config.php items 兼容失败');
+    $missingListenersRoot = $tmp . '/missing-listeners-root';
+    mkdir($missingListenersRoot . '/config/plugin/kylin987/config-center', 0750, true);
+    file_put_contents($missingListenersRoot . '/config/plugin/kylin987/config-center/config.php', "<?php\nreturn [];\n");
+    try {
+        ConfigLoader::load($missingListenersRoot);
+        throw new RuntimeException('缺少 listeners.php 时应抛出异常');
+    } catch (RuntimeException $exception) {
+        assertTrue(str_contains($exception->getMessage(), '缺少监听配置文件'), '缺少 listeners.php 的异常提示不正确');
+    }
 } finally {
     ini_set('error_log', $originalErrorLog === false ? '' : $originalErrorLog);
     if (is_resource($serverProcess)) {

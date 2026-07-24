@@ -33,8 +33,7 @@ final class ConfigLoader
     {
         $listenersPath = rtrim($configDirectory, '/') . '/listeners.php';
         if (!is_file($listenersPath)) {
-            $config['items'] = $config['items'] ?? [];
-            return $config;
+            throw new RuntimeException('缺少监听配置文件：' . $listenersPath);
         }
 
         $listeners = require $listenersPath;
