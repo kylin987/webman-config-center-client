@@ -25,6 +25,10 @@ return [
     // 读取配置中心响应的总超时时间，单位秒。
     'timeout' => 8,
 
+    // 访问服务端时使用的 IP 协议。auto=系统默认，v4=强制 IPv4，v6=强制 IPv6。
+    // 外网域名配合 IP 白名单时，如果不想走 IPv6，可以改成 v4。
+    'ip_resolve' => 'auto',
+
     // Redis Pub/Sub 实时通知配置。enable=false 时只使用轮询。
     'redis' => [
         // 是否启用 Redis 订阅。启用后仍会保留轮询作为兜底。

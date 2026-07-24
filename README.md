@@ -68,6 +68,18 @@ CONFIG_CENTER_REDIS_PASSWORD=your-redis-password
 
 其他普通配置建议直接写在 `config.php` 中，例如 namespace、Redis 地址、DB、频道、轮询间隔、日志 channel 等。
 
+如果服务端开启了客户端 IP 白名单，并且公网域名可能解析到 IPv6，可以在 `config.php` 中强制客户端走 IPv4：
+
+```php
+'ip_resolve' => 'v4',
+```
+
+可选值：
+
+- `auto`：默认值，交给系统和 DNS 决定。
+- `v4`：强制 IPv4，适合公网域名 + IPv4 白名单。
+- `v6`：强制 IPv6，一般不需要。
+
 轮询默认带随机抖动，避免几十个客户端集中在同一秒请求服务端：
 
 - `poll_interval=60` 表示基础轮询间隔是 60 秒。

@@ -11,12 +11,12 @@ final class ConfigApiClient
 
     public function __construct(private readonly array $config)
     {
-        $this->client = new Client([
+        $this->client = new Client($this->clientOptions([
             'base_uri' => rtrim((string) ($config['endpoint'] ?? ''), '/') . '/',
             'connect_timeout' => (float) ($config['connect_timeout'] ?? 3),
             'timeout' => (float) ($config['timeout'] ?? 8),
             'http_errors' => false,
-        ]);
+        ]));
     }
 
     public function fetch(string $namespace, string $group, string $dataId): ConfigItem
@@ -122,5 +122,27 @@ final class ConfigApiClient
         }
 
         return strlen($message) > $limit ? substr($message, 0, $limit) . '...' : $message;
+    }
+
+    private function clientOptions(array $options): array
+    {
+        $ipResolve = strtolower(trim((string) ($this->config['ip_resolve'] ?? 'auto')));
+        if ($ipResolve === '' || $ipResolve === 'auto') {
+            return $options;
+        }
+
+        $curlValue = match ($ipResolve) {
+            'v4', 'ipv4', '4' => 'CURL_IPRESOLVE_V4',
+            'v6', 'ipv6', '6' => 'CURL_IPRESOLVE_V6',
+            default => throw new RuntimeException('ip_resolve 配置不正确，仅支持 auto、v4、v6'),
+        };
+
+        if (!defined('CURLOPT_IPRESOLVE') || !defined($curlValue)) {
+            throw new RuntimeException('当前 PHP cURL 环境不支持 ip_resolve 配置');
+        }
+
+        $options['curl'][constant('CURLOPT_IPRESOLVE')] = constant($curlValue);
+
+        return $options;
     }
 }
