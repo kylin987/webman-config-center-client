@@ -41,7 +41,7 @@ config/plugin/kylin987/config-center/process.php
 
 打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码、轮询和日志参数。
 
-插件默认开启。Webman 启动时会自动启动一个 `config-center-poll` 进程：
+插件默认开启。Webman 启动时会自动启动一个 `config-center` 进程：
 
 ```bash
 php start.php start
@@ -74,6 +74,11 @@ CONFIG_CENTER_LOG_THROTTLE_SECONDS=300
 ```bash
 CONFIG_CENTER_REDIS_URL=tcp://redis.example.com:6379
 ```
+
+配置 `CONFIG_CENTER_REDIS_URL` 后，自动进程会同时做两件事：
+
+- 按 `poll_interval` 定时轮询，作为兜底。
+- 订阅 Redis Pub/Sub，服务端发布配置后立即收到通知并同步。
 
 打开 `config/plugin/kylin987/config-center/listeners.php`，维护需要监听/同步的配置文件。
 
@@ -177,7 +182,7 @@ $custom = config('custom.config', []);
 
 ## 命令
 
-一般情况下不需要手动启动监听进程，插件会跟随 Webman 自动启动 `config-center-poll` 进程。
+一般情况下不需要手动启动监听进程，插件会跟随 Webman 自动启动 `config-center` 进程。
 
 如果需要手动调试，可以使用下面的命令。
 
@@ -193,7 +198,7 @@ php vendor/bin/config-center-sync
 php vendor/bin/config-center-poll
 ```
 
-Redis 是配置可选项。如果希望发布后更快触发同步，配置 `CONFIG_CENTER_REDIS_URL` 后可以手动运行 Redis 发布事件监听：
+Redis 是配置可选项。自动进程已经支持 Redis 订阅；下面这个命令只建议用于手动调试 Redis 事件监听：
 
 ```bash
 php vendor/bin/config-center-listen
@@ -212,9 +217,9 @@ $config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
 
 ## 运行建议
 
-- 默认使用插件自动注册的 `config-center-poll` 进程，不需要额外 sidecar。
+- 默认使用插件自动注册的 `config-center` 进程，不需要额外 sidecar。
 - `config-center-sync` 可以用于手动调试或启动前同步一次。
-- 如果需要更实时的发布通知，可以配置 `CONFIG_CENTER_REDIS_URL` 并手动运行 `config-center-listen`。
+- 如果需要更实时的发布通知，配置 `CONFIG_CENTER_REDIS_URL` 即可，自动进程会同时订阅 Redis。
 - 配置中心不可用时，客户端保留本地旧文件，下一次同步成功后再更新。
 - 配置中心不可用时，自动轮询进程、`config-center-poll` 和 `config-center-listen` 都不会连续刷屏；错误会写入 Webman 日志，默认 channel 为 `default`，同类错误默认 300 秒最多写一次。
 - 如果希望启动前同步失败时阻断启动，可以配置 `CONFIG_CENTER_FAIL_ON_ERROR=1`；默认不阻断，适合配置文件已经随项目发布或已经落地到本地的场景。

@@ -25,14 +25,14 @@ return [
     // 读取配置中心响应的总超时时间，单位秒。
     'timeout' => 8,
 
-    // 可选：配置后可运行 config-center-listen 监听 Redis Pub/Sub，实现更实时的配置更新。
-    // 不配置时，使用 config-center-poll 轮询即可。
+    // 可选：配置后，自动进程会同时订阅 Redis Pub/Sub，实现更实时的配置更新。
+    // 不配置时，自动进程只使用轮询。
     'redis_url' => getenv('CONFIG_CENTER_REDIS_URL') ?: '',
 
     // Redis Pub/Sub 频道，需要和服务端 CONFIG_CENTER_EVENT_CHANNEL 保持一致。
     'event_channel' => 'config-center:changed',
 
-    // 轮询间隔，单位秒。只影响 config-center-poll。
+    // 轮询间隔，单位秒。自动进程和手动 config-center-poll 命令都会使用。
     'poll_interval' => 60,
 
     // reload 请求签名密钥。只有需要 ApplyAdapter 执行 reload_command 时才需要配置。
