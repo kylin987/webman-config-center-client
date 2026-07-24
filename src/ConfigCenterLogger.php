@@ -39,7 +39,7 @@ final class ConfigCenterLogger
         $channel = $channel !== '' ? $channel : 'default';
 
         try {
-            if (class_exists('\\support\\Log')) {
+            if (class_exists('\\support\\Log') && $this->canUseWebmanLogChannel($channel)) {
                 \support\Log::channel($channel)->{$level}($message, $context);
                 return;
             }
@@ -47,6 +47,29 @@ final class ConfigCenterLogger
         }
 
         error_log('[webman-config-center-client] ' . $level . ' ' . $message . ' ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function canUseWebmanLogChannel(string &$channel): bool
+    {
+        if (!function_exists('config')) {
+            return true;
+        }
+
+        $logConfig = config('log', []);
+        if (!is_array($logConfig)) {
+            return false;
+        }
+
+        if (isset($logConfig[$channel]) && is_array($logConfig[$channel])) {
+            return true;
+        }
+
+        if ($channel !== 'default' && isset($logConfig['default']) && is_array($logConfig['default'])) {
+            $channel = 'default';
+            return true;
+        }
+
+        return false;
     }
 
     private function normalizeContext(array $context): array
