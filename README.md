@@ -78,6 +78,64 @@ return [
 
 旧版本把监听项写在 `config.php` 的 `items` 里仍然兼容；如果同目录存在 `listeners.php`，会优先使用 `listeners.php`。
 
+## 业务代码读取配置
+
+客户端默认把远端配置文件写入业务项目的：
+
+```text
+config/cc/
+```
+
+所以在 Webman 里读取时，统一使用 `cc` 作为一级配置名。
+
+例如 `listeners.php` 中这样配置：
+
+```php
+[
+    'group' => 'DEFAULT_GROUP',
+    'data_id' => 'redis.php',
+    'format' => 'php',
+    'path' => 'redis.php',
+]
+```
+
+同步后会生成：
+
+```text
+config/cc/redis.php
+```
+
+业务代码里这样读取：
+
+```php
+$redis = config('cc.redis', []);
+```
+
+如果 `path` 带目录：
+
+```php
+[
+    'group' => 'DEFAULT_GROUP',
+    'data_id' => 'mysql.php',
+    'format' => 'php',
+    'path' => 'database/mysql.php',
+]
+```
+
+同步后会生成：
+
+```text
+config/cc/database/mysql.php
+```
+
+业务代码里这样读取：
+
+```php
+$mysql = config('cc.database.mysql', []);
+```
+
+也就是说，`config()` 的 key 由本地 `path` 决定，不是由远端 `data_id` 决定。
+
 ## 命令
 
 启动前同步一次：
