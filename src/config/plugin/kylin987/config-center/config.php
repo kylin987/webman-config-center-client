@@ -18,13 +18,4 @@ return [
     'log_channel' => getenv('CONFIG_CENTER_LOG_CHANNEL') ?: 'default',
     'log_throttle_seconds' => (int) (getenv('CONFIG_CENTER_LOG_THROTTLE_SECONDS') ?: 300),
     'fail_on_error' => filter_var(getenv('CONFIG_CENTER_FAIL_ON_ERROR') ?: false, FILTER_VALIDATE_BOOL),
-    'items' => [
-        [
-            'group' => 'DEFAULT_GROUP',
-            'data_id' => 'app.php',
-            'format' => 'php',
-            'path' => 'app.php',
-            'reload_command' => 'php start.php reload',
-        ],
-    ],
 ];

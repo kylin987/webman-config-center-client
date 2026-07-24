@@ -22,11 +22,12 @@ config/plugin/kylin987/config-center/
 
 ```text
 config/plugin/kylin987/config-center/config.php
+config/plugin/kylin987/config-center/listeners.php
 ```
 
 ## 配置
 
-打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码和监听项。
+打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码、轮询和日志参数。
 
 常用环境变量：
 
@@ -47,17 +48,25 @@ CONFIG_CENTER_LOG_THROTTLE_SECONDS=300
 CONFIG_CENTER_REDIS_URL=tcp://redis.example.com:6379
 ```
 
-`items` 是白名单，只有声明过的配置才会被写入本地文件：
+打开 `config/plugin/kylin987/config-center/listeners.php`，维护需要监听/同步的配置文件。
+
+`listeners.php` 是白名单，只有声明过的配置才会被写入本地文件：
 
 ```php
-[
-    'group' => 'DEFAULT_GROUP',
-    'data_id' => 'app.php',
-    'format' => 'php',
-    'path' => 'app.php',
-    'reload_command' => 'php start.php reload',
-]
+<?php
+
+return [
+    [
+        'group' => 'DEFAULT_GROUP',
+        'data_id' => 'app.php',
+        'format' => 'php',
+        'path' => 'app.php',
+        'reload_command' => 'php start.php reload',
+    ],
+];
 ```
+
+旧版本把监听项写在 `config.php` 的 `items` 里仍然兼容；如果同目录存在 `listeners.php`，会优先使用 `listeners.php`。
 
 ## 命令
 
@@ -84,7 +93,8 @@ php vendor/bin/config-center-listen
 如果项目需要配置更新后执行 reload，可以在业务项目独立 Webman process 的定时器里调用：
 
 ```php
-Yhs\WebmanConfigCenter\ApplyAdapter::consume(config('plugin.kylin987.config-center.config'));
+$config = Yhs\WebmanConfigCenter\ConfigLoader::load();
+(new Yhs\WebmanConfigCenter\ApplyAdapter($config))->consume();
 ```
 
 `ApplyAdapter` 只接受共享状态目录中带 HMAC 的请求，并且只会执行当前业务项目白名单里声明的 `reload_command`。

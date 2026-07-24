@@ -4,6 +4,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use Yhs\WebmanConfigCenter\ConfigItem;
 use Yhs\WebmanConfigCenter\ConfigCenterLogger;
+use Yhs\WebmanConfigCenter\ConfigLoader;
 use Yhs\WebmanConfigCenter\ConfigSynchronizer;
 use Yhs\WebmanConfigCenter\ContentValidator;
 
@@ -169,11 +170,17 @@ return [
     'log_channel' => 'default',
     'log_throttle_seconds' => 300,
     'fail_on_error' => false,
-    'items' => [
-        ['group' => 'DEFAULT_GROUP', 'data_id' => 'app.php', 'format' => 'php', 'path' => 'app.php'],
-    ],
 ];
 PHP);
+    file_put_contents($commandRoot . '/config/plugin/kylin987/config-center/listeners.php', <<<'PHP'
+<?php
+return [
+    ['group' => 'DEFAULT_GROUP', 'data_id' => 'app.php', 'format' => 'php', 'path' => 'app.php'],
+];
+PHP);
+    $loaded = ConfigLoader::load($commandRoot);
+    assertTrue(count($loaded['items']) === 1 && $loaded['items'][0]['data_id'] === 'app.php', 'listeners.php 未正确加载为监听项');
+
     $syncCommand = PHP_BINARY . ' ' . escapeshellarg(dirname(__DIR__) . '/bin/config-center-sync');
     exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);
     assertTrue($exitCode === 0, '默认配置下 config-center-sync 失败不应阻断启动');
@@ -182,6 +189,19 @@ PHP);
     file_put_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php', $strictConfig);
     exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);
     assertTrue($exitCode === 1, 'fail_on_error=true 时 config-center-sync 失败应返回非 0');
+
+    $legacyRoot = $tmp . '/legacy-root';
+    mkdir($legacyRoot . '/config/plugin/kylin987/config-center', 0750, true);
+    file_put_contents($legacyRoot . '/config/plugin/kylin987/config-center/config.php', <<<'PHP'
+<?php
+return [
+    'items' => [
+        ['group' => 'DEFAULT_GROUP', 'data_id' => 'legacy.php', 'format' => 'php', 'path' => 'legacy.php'],
+    ],
+];
+PHP);
+    $legacyLoaded = ConfigLoader::load($legacyRoot);
+    assertTrue(count($legacyLoaded['items']) === 1 && $legacyLoaded['items'][0]['data_id'] === 'legacy.php', '旧版 config.php items 兼容失败');
 } finally {
     ini_set('error_log', $originalErrorLog === false ? '' : $originalErrorLog);
     if (is_resource($serverProcess)) {

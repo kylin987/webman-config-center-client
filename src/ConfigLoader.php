@@ -20,12 +20,29 @@ final class ConfigLoader
                 if (!is_array($config)) {
                     throw new RuntimeException('配置文件必须返回数组：' . $path);
                 }
-                return $config;
+                return self::withListeners($config, dirname($path));
             }
         }
 
         throw new RuntimeException(
             "缺少配置文件，请确认已安装插件配置：config/plugin/kylin987/config-center/config.php"
         );
+    }
+
+    private static function withListeners(array $config, string $configDirectory): array
+    {
+        $listenersPath = rtrim($configDirectory, '/') . '/listeners.php';
+        if (!is_file($listenersPath)) {
+            $config['items'] = $config['items'] ?? [];
+            return $config;
+        }
+
+        $listeners = require $listenersPath;
+        if (!is_array($listeners)) {
+            throw new RuntimeException('监听配置文件必须返回数组：' . $listenersPath);
+        }
+
+        $config['items'] = $listeners;
+        return $config;
     }
 }
