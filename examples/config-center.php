@@ -1,7 +1,7 @@
 <?php
 
 return [
-    // 配置中心服务端地址。ACK 内部可填 http://config-center.default.svc:8787/，外部建议填 HTTPS 域名，建议保留最后的 /。
+    // 配置中心服务端地址。建议保留最后的 /。
     'endpoint' => getenv('CONFIG_CENTER_ENDPOINT') ?: 'https://config.example.com/',
 
     // 客户端账号用户名。在服务端管理后台的“客户端账号”中创建，不是管理员账号。

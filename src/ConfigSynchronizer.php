@@ -53,7 +53,7 @@ final class ConfigSynchronizer
         $item = $this->api->fetch($namespace, (string) $mapping['group'], (string) $mapping['data_id']);
         $state = $this->state($item->key());
         $downloadedRevision = (int) ($state['downloaded_revision'] ?? 0);
-        $path = $this->safePath((string) $mapping['path']);
+        $path = $this->resolvePath((string) $mapping['path']);
         if ($item->revision <= $downloadedRevision && $this->localFileMatches($path, $item->md5)) {
             return ['key' => $item->key(), 'status' => 'unchanged', 'revision' => $item->revision];
         }
@@ -65,13 +65,27 @@ final class ConfigSynchronizer
         return ['key' => $item->key(), 'status' => $status, 'revision' => $item->revision, 'path' => $path];
     }
 
-    private function safePath(string $relativePath): string
+    private function resolvePath(string $path): string
     {
-        $root = rtrim((string) ($this->config['config_root'] ?? ''), '/');
-        if ($root === '' || str_starts_with($relativePath, '/') || str_contains($relativePath, '..')) {
+        if ($path === '' || preg_match('#(^|[\\\\/])\\.\\.([\\\\/]|$)#', $path)) {
             throw new RuntimeException('配置文件路径不在允许范围内');
         }
-        return $root . '/' . ltrim($relativePath, '/');
+
+        if ($this->isAbsolutePath($path)) {
+            return $path;
+        }
+
+        $root = rtrim((string) ($this->config['config_root'] ?? ''), '/');
+        if ($root === '') {
+            throw new RuntimeException('配置文件路径不在允许范围内');
+        }
+
+        return $root . '/' . ltrim($path, '/');
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/') || preg_match('#^[A-Za-z]:[\\\\/]#', $path) === 1;
     }
 
     private function localFileMatches(string $path, string $md5): bool

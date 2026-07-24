@@ -70,11 +70,16 @@ return [
         'group' => 'DEFAULT_GROUP',
         'data_id' => 'app.php',
         'format' => 'php',
-        'path' => 'app.php',
+        'path' => config_path() . '/cc/app.php',
         'reload_command' => 'php start.php reload',
     ],
 ];
 ```
+
+`path` 支持绝对路径和相对路径：
+
+- 推荐写绝对路径，例如 `config_path() . '/cc/sw-mysql.php'`，清楚知道文件会写到哪里。
+- 如果写相对路径，例如 `'sw-mysql.php'`，客户端会把它拼到 `config_root` 下面，默认也就是 `config/cc/sw-mysql.php`。
 
 旧版本把监听项写在 `config.php` 的 `items` 里仍然兼容；如果同目录存在 `listeners.php`，会优先使用 `listeners.php`。
 
@@ -95,7 +100,7 @@ config/cc/
     'group' => 'DEFAULT_GROUP',
     'data_id' => 'redis.php',
     'format' => 'php',
-    'path' => 'redis.php',
+    'path' => config_path() . '/cc/redis.php',
 ]
 ```
 
@@ -118,7 +123,7 @@ $redis = config('cc.redis', []);
     'group' => 'DEFAULT_GROUP',
     'data_id' => 'mysql.php',
     'format' => 'php',
-    'path' => 'database/mysql.php',
+    'path' => config_path() . '/cc/database/mysql.php',
 ]
 ```
 
@@ -134,7 +139,24 @@ config/cc/database/mysql.php
 $mysql = config('cc.database.mysql', []);
 ```
 
-也就是说，`config()` 的 key 由本地 `path` 决定，不是由远端 `data_id` 决定。
+也就是说，`config()` 的 key 由本地 `path` 在 `config/` 目录下的相对位置决定，不是由远端 `data_id` 决定。
+
+如果你把配置写到 `config/cc` 之外，也可以，但 Webman 的 `config()` 读取 key 会跟着路径变化。例如：
+
+```php
+[
+    'group' => 'DEFAULT_GROUP',
+    'data_id' => 'custom.php',
+    'format' => 'php',
+    'path' => config_path() . '/custom/config.php',
+]
+```
+
+同步后业务代码读取：
+
+```php
+$custom = config('custom.config', []);
+```
 
 ## 命令
 

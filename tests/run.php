@@ -146,6 +146,16 @@ PHP);
     assertTrue($result['status'] === 'repaired', '同版本但本地内容不一致时应返回 repaired');
     assertTrue(file_get_contents($path) === $servedContent, '本地文件被改坏后未自动修复');
 
+    $absolutePath = $tmp . '/outside/sw-mysql.php';
+    $result = $synchronizer->sync([
+        'group' => 'DEFAULT_GROUP',
+        'data_id' => 'sw-mysql.php',
+        'path' => $absolutePath,
+        'format' => 'php',
+    ]);
+    assertTrue($result['status'] === 'updated', '绝对路径首次同步应返回 updated');
+    assertTrue(file_get_contents($absolutePath) === $servedContent, '绝对路径未正确写入配置文件');
+
     $logPath = $tmp . '/client.log';
     ini_set('error_log', $logPath);
     $logger = new ConfigCenterLogger(['log_channel' => 'default', 'log_throttle_seconds' => 300]);
