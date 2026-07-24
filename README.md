@@ -31,13 +31,30 @@ config/cc/
 主要配置文件是：
 
 ```text
+config/plugin/kylin987/config-center/app.php
 config/plugin/kylin987/config-center/config.php
 config/plugin/kylin987/config-center/listeners.php
+config/plugin/kylin987/config-center/process.php
 ```
 
 ## 配置
 
 打开 `config/plugin/kylin987/config-center/config.php`，根据项目实际情况修改服务端地址、客户端账号密码、轮询和日志参数。
+
+插件默认开启。Webman 启动时会自动启动一个 `config-center-poll` 进程：
+
+```bash
+php start.php start
+```
+
+如果需要关闭自动同步进程，修改：
+
+```php
+// config/plugin/kylin987/config-center/app.php
+return [
+    'enable' => false,
+];
+```
 
 常用环境变量：
 
@@ -160,19 +177,23 @@ $custom = config('custom.config', []);
 
 ## 命令
 
+一般情况下不需要手动启动监听进程，插件会跟随 Webman 自动启动 `config-center-poll` 进程。
+
+如果需要手动调试，可以使用下面的命令。
+
 启动前同步一次：
 
 ```bash
 php vendor/bin/config-center-sync
 ```
 
-定时轮询配置中心，推荐默认使用：
+手动启动定时轮询：
 
 ```bash
 php vendor/bin/config-center-poll
 ```
 
-Redis 是配置可选项。如果希望发布后更快触发同步，配置 `CONFIG_CENTER_REDIS_URL` 后运行 Redis 发布事件监听，适合放在 sidecar 或独立进程中：
+Redis 是配置可选项。如果希望发布后更快触发同步，配置 `CONFIG_CENTER_REDIS_URL` 后可以手动运行 Redis 发布事件监听：
 
 ```bash
 php vendor/bin/config-center-listen
@@ -183,19 +204,18 @@ php vendor/bin/config-center-listen
 如果项目需要配置更新后执行 reload，可以在业务项目独立 Webman process 的定时器里调用：
 
 ```php
-$config = Yhs\WebmanConfigCenter\ConfigLoader::load();
-(new Yhs\WebmanConfigCenter\ApplyAdapter($config))->consume();
+$config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
+(new Kylin987\WebmanConfigCenter\ApplyAdapter($config))->consume();
 ```
 
 `ApplyAdapter` 只接受共享状态目录中带 HMAC 的请求，并且只会执行当前业务项目白名单里声明的 `reload_command`。
 
 ## 运行建议
 
-- `config-center-sync` 用于 initContainer 或应用启动前同步。
-- 默认只需要运行 `config-center-poll`，不依赖 Redis。
-- 如果需要更实时的发布通知，配置 `CONFIG_CENTER_REDIS_URL` 并运行 `config-center-listen`。
-- `config-center-listen` 和 `config-center-poll` 都建议运行在 sidecar 或独立进程中，不要放进业务 worker 阻塞执行。
+- 默认使用插件自动注册的 `config-center-poll` 进程，不需要额外 sidecar。
+- `config-center-sync` 可以用于手动调试或启动前同步一次。
+- 如果需要更实时的发布通知，可以配置 `CONFIG_CENTER_REDIS_URL` 并手动运行 `config-center-listen`。
 - 配置中心不可用时，客户端保留本地旧文件，下一次同步成功后再更新。
-- 配置中心不可用时，`config-center-poll` 和 `config-center-listen` 不会退出，也不会连续刷 STDERR；错误会写入 Webman 日志，默认 channel 为 `default`，同类错误默认 300 秒最多写一次。
+- 配置中心不可用时，自动轮询进程、`config-center-poll` 和 `config-center-listen` 都不会连续刷屏；错误会写入 Webman 日志，默认 channel 为 `default`，同类错误默认 300 秒最多写一次。
 - 如果希望启动前同步失败时阻断启动，可以配置 `CONFIG_CENTER_FAIL_ON_ERROR=1`；默认不阻断，适合配置文件已经随项目发布或已经落地到本地的场景。
 - 如果服务端版本号未变化，但本地配置文件被误删或内容被手动改坏，客户端会按服务端内容自动修复本地文件，并返回 `repaired` 状态。

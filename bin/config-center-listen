@@ -4,5 +4,5 @@
 $autoload = $_composer_autoload_path ?? (is_file(dirname(__DIR__) . '/vendor/autoload.php') ? dirname(__DIR__) . '/vendor/autoload.php' : dirname(__DIR__, 3) . '/autoload.php');
 require $autoload;
 
-$config = Yhs\WebmanConfigCenter\ConfigLoader::load();
-(new Yhs\WebmanConfigCenter\RedisEventListener($config, new Yhs\WebmanConfigCenter\ConfigSynchronizer($config)))->run();
+$config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
+(new Kylin987\WebmanConfigCenter\RedisEventListener($config, new Kylin987\WebmanConfigCenter\ConfigSynchronizer($config)))->run();

@@ -2,11 +2,11 @@
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use Yhs\WebmanConfigCenter\ConfigItem;
-use Yhs\WebmanConfigCenter\ConfigCenterLogger;
-use Yhs\WebmanConfigCenter\ConfigLoader;
-use Yhs\WebmanConfigCenter\ConfigSynchronizer;
-use Yhs\WebmanConfigCenter\ContentValidator;
+use Kylin987\WebmanConfigCenter\ConfigItem;
+use Kylin987\WebmanConfigCenter\ConfigCenterLogger;
+use Kylin987\WebmanConfigCenter\ConfigLoader;
+use Kylin987\WebmanConfigCenter\ConfigSynchronizer;
+use Kylin987\WebmanConfigCenter\ContentValidator;
 
 $validator = new ContentValidator();
 $content = "<?php return ['enable' => true];";

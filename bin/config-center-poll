@@ -4,10 +4,10 @@
 $autoload = $_composer_autoload_path ?? (is_file(dirname(__DIR__) . '/vendor/autoload.php') ? dirname(__DIR__) . '/vendor/autoload.php' : dirname(__DIR__, 3) . '/autoload.php');
 require $autoload;
 
-$config = Yhs\WebmanConfigCenter\ConfigLoader::load();
+$config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
 $interval = max(10, (int) ($config['poll_interval'] ?? 60));
-$sync = new Yhs\WebmanConfigCenter\ConfigSynchronizer($config);
-$logger = new Yhs\WebmanConfigCenter\ConfigCenterLogger($config);
+$sync = new Kylin987\WebmanConfigCenter\ConfigSynchronizer($config);
+$logger = new Kylin987\WebmanConfigCenter\ConfigCenterLogger($config);
 $wasFailing = false;
 while (true) {
     try {

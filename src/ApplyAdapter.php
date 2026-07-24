@@ -1,6 +1,6 @@
 <?php
 
-namespace Yhs\WebmanConfigCenter;
+namespace Kylin987\WebmanConfigCenter;
 
 use RuntimeException;
 

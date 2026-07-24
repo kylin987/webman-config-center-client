@@ -12,7 +12,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Yhs\\WebmanConfigCenter\\": "src/"
+      "Kylin987\\WebmanConfigCenter\\": "src/"
     }
   },
   "bin": [

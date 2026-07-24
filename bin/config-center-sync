@@ -4,9 +4,9 @@
 $autoload = $_composer_autoload_path ?? (is_file(dirname(__DIR__) . '/vendor/autoload.php') ? dirname(__DIR__) . '/vendor/autoload.php' : dirname(__DIR__, 3) . '/autoload.php');
 require $autoload;
 
-$config = Yhs\WebmanConfigCenter\ConfigLoader::load();
-$sync = new Yhs\WebmanConfigCenter\ConfigSynchronizer($config);
-$logger = new Yhs\WebmanConfigCenter\ConfigCenterLogger($config);
+$config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
+$sync = new Kylin987\WebmanConfigCenter\ConfigSynchronizer($config);
+$logger = new Kylin987\WebmanConfigCenter\ConfigCenterLogger($config);
 try {
     foreach ($sync->syncAll() as $result) {
         fwrite(STDOUT, json_encode($result, JSON_UNESCAPED_UNICODE) . PHP_EOL);
