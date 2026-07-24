@@ -114,6 +114,8 @@ return [
 
 `listeners.php` 必须存在并返回数组。监听项不要写到 `config.php` 里，`config.php` 只负责服务端地址、账号密码、轮询、Redis、日志等运行参数。
 
+修改 `listeners.php` 后执行 `php start.php reload`，插件进程会重新读取监听列表；如果你从早期版本升级过来，建议升级后先执行一次 `php start.php restart`。
+
 ## 业务代码读取配置
 
 客户端默认把远端配置文件写入业务项目的：
