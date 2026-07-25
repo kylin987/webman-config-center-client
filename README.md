@@ -214,6 +214,34 @@ $mysql = config('cc.database.mysql', []);
 $custom = config('custom.config', []);
 ```
 
+## 客户端发布配置
+
+如果业务项目需要主动新增或修改配置，可以使用客户端账号调用发布接口。发布成功后，服务端会生成历史版本，并触发配置变更通知。
+
+```php
+use Kylin987\WebmanConfigCenter\ConfigApiClient;
+use Kylin987\WebmanConfigCenter\ConfigLoader;
+
+$client = new ConfigApiClient(ConfigLoader::load());
+
+$result = $client->publish(
+    namespace: 'public',
+    group: 'DEFAULT_GROUP',
+    dataId: 'app.php',
+    format: 'php',
+    content: "<?php\nreturn ['debug' => false];\n",
+    expectedRevision: null,
+    note: 'publish from business project'
+);
+
+echo $result->revision;
+```
+
+`expectedRevision` 是可选的乐观锁：
+
+- 不传：直接新增或覆盖发布。
+- 传当前版本号：如果服务端版本已经变化，会发布失败，避免覆盖别人刚提交的内容。
+
 ## 命令
 
 一般情况下不需要手动启动监听进程，插件会跟随 Webman 自动启动 `config-center` 进程。

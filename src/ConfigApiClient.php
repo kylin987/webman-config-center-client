@@ -78,6 +78,84 @@ final class ConfigApiClient
         );
     }
 
+    public function publish(
+        string $namespace,
+        string $group,
+        string $dataId,
+        string $format,
+        string $content,
+        ?int $expectedRevision = null,
+        string $note = ''
+    ): ConfigPublishResult {
+        $payload = [
+            'namespace' => $namespace,
+            'group' => $group,
+            'dataId' => $dataId,
+            'format' => $format,
+            'content' => $content,
+            'note' => $note,
+        ];
+        if ($expectedRevision !== null) {
+            $payload['expectedRevision'] = $expectedRevision;
+        }
+
+        $response = $this->client->post('api/client/v1/config/publish', [
+            'headers' => [
+                'Accept' => 'application/json',
+            ],
+            'auth' => [
+                (string) ($this->config['username'] ?? ''),
+                (string) ($this->config['password'] ?? ''),
+            ],
+            'json' => $payload,
+        ]);
+        if ($response->getStatusCode() !== 200) {
+            throw new RuntimeException($this->errorMessage(
+                '配置服务发布失败',
+                $response->getStatusCode(),
+                (string) $response->getBody(),
+                $namespace,
+                $group,
+                $dataId
+            ));
+        }
+
+        $rawBody = (string) $response->getBody();
+        try {
+            $body = json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException($this->errorMessage(
+                '配置服务返回无效 JSON',
+                $response->getStatusCode(),
+                $rawBody,
+                $namespace,
+                $group,
+                $dataId
+            ), 0, $exception);
+        }
+
+        $data = $body['data'] ?? null;
+        if (($body['code'] ?? -1) !== 0 || !is_array($data)) {
+            throw new RuntimeException($this->errorMessage(
+                '配置服务返回错误',
+                $response->getStatusCode(),
+                $rawBody,
+                $namespace,
+                $group,
+                $dataId
+            ));
+        }
+
+        return new ConfigPublishResult(
+            (string) ($data['namespace'] ?? ''),
+            (string) ($data['group'] ?? ''),
+            (string) ($data['dataId'] ?? ''),
+            (string) ($data['format'] ?? $format),
+            (int) ($data['revision'] ?? 0),
+            (string) ($data['md5'] ?? ''),
+        );
+    }
+
     private function errorMessage(string $prefix, int $statusCode, string $body, string $namespace, string $group, string $dataId): string
     {
         $message = $prefix . ' [' . $namespace . '/' . $group . '/' . $dataId . ']，HTTP ' . $statusCode;
