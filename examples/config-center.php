@@ -16,7 +16,7 @@ return [
     // 远端配置同步到本地的根目录。默认写入业务项目 config/cc，可通过 config('cc.xxx') 读取。
     'config_root' => getenv('CONFIG_CENTER_CONFIG_ROOT') ?: base_path() . '/config/cc',
 
-    // 客户端运行状态目录，用于记录已同步版本、文件 md5 和待执行 reload 请求。
+    // 客户端运行状态目录，用于记录已同步版本和文件 md5。
     'state_dir' => getenv('CONFIG_CENTER_STATE_DIR') ?: runtime_path() . '/config-center',
 
     // 连接配置中心服务端的超时时间，单位秒。
@@ -37,9 +37,6 @@ return [
 
     // 轮询随机抖动秒数，避免多个客户端在同一秒集中请求；默认取 poll_interval 的一半，最多 30 秒。
     'poll_jitter_seconds' => getenv('CONFIG_CENTER_POLL_JITTER_SECONDS') === false ? null : (int) getenv('CONFIG_CENTER_POLL_JITTER_SECONDS'),
-
-    // reload 请求签名密钥。只有需要 ApplyAdapter 执行 reload_command 时才需要配置。
-    'apply_secret' => getenv('CONFIG_CENTER_APPLY_SECRET') ?: '',
 
     // Webman 日志 channel。默认 default。
     'log_channel' => getenv('CONFIG_CENTER_LOG_CHANNEL') ?: 'default',

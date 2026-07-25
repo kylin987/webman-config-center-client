@@ -12,11 +12,14 @@ final class ConfigSynchronizer
 
     private AtomicFileWriter $writer;
 
+    private ReloadCommandRunner $reloadCommandRunner;
+
     public function __construct(private readonly array $config)
     {
         $this->api = new ConfigApiClient($config);
         $this->validator = new ContentValidator();
         $this->writer = new AtomicFileWriter();
+        $this->reloadCommandRunner = new ReloadCommandRunner($config);
     }
 
     public function syncAll(): array
@@ -59,10 +62,16 @@ final class ConfigSynchronizer
         }
         $this->validator->validate($item, (string) $mapping['format']);
         $this->writer->write($path, $item->content);
-        $this->writeState($item->key(), ['downloaded_revision' => $item->revision, 'md5' => $item->md5]);
-        (new ApplyRequestWriter(rtrim((string) $this->config['state_dir'], '/'), (string) ($this->config['apply_secret'] ?? '')))->write($item->key(), $item->revision);
         $status = $item->revision <= $downloadedRevision ? 'repaired' : 'updated';
-        return ['key' => $item->key(), 'status' => $status, 'revision' => $item->revision, 'path' => $path];
+        $reload = $this->reloadCommandRunner->run($mapping, $item->key(), $item->revision);
+        $this->writeState($item->key(), ['downloaded_revision' => $item->revision, 'md5' => $item->md5]);
+        $result = ['key' => $item->key(), 'status' => $status, 'revision' => $item->revision, 'path' => $path];
+        if ($reload !== null) {
+            $result['reload'] = [
+                'exit_code' => $reload['exit_code'],
+            ];
+        }
+        return $result;
     }
 
     private function resolvePath(string $path): string

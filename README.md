@@ -62,7 +62,6 @@ return [
 CONFIG_CENTER_ENDPOINT=http://config-center.example.com/
 CONFIG_CENTER_USERNAME=your-client-username
 CONFIG_CENTER_PASSWORD=your-client-password
-CONFIG_CENTER_APPLY_SECRET=replace-with-random-secret
 CONFIG_CENTER_REDIS_PASSWORD=your-redis-password
 ```
 
@@ -125,7 +124,7 @@ return [
         'data_id' => 'app.php',
         'format' => 'php',
         'path' => config_path() . '/cc/app.php',
-        'reload_command' => 'php start.php reload',
+        'reload_command' => '',
     ],
 ];
 ```
@@ -136,6 +135,20 @@ return [
 - 如果写相对路径，例如 `'sw-mysql.php'`，客户端会把它拼到 `config_root` 下面，默认也就是 `config/cc/sw-mysql.php`。
 
 `listeners.php` 必须存在并返回数组。监听项不要写到 `config.php` 里，`config.php` 只负责服务端地址、账号密码、轮询、Redis、日志等运行参数。
+
+`reload_command` 是可选项，默认为空。只有远端配置实际更新或本地文件被修复时，客户端才会执行对应监听项里的 `reload_command`；配置未变化时不会执行。命令执行成功或失败都会写入当前 `log_channel`。
+
+如果确实希望某个配置更新后自动 reload，可以这样写：
+
+```php
+[
+    'group' => 'DEFAULT_GROUP',
+    'data_id' => 'app.php',
+    'format' => 'php',
+    'path' => config_path() . '/cc/app.php',
+    'reload_command' => 'php ' . base_path() . '/start.php reload',
+]
+```
 
 修改 `listeners.php` 后执行 `php start.php reload`，插件进程会重新读取监听列表；如果你从早期版本升级过来，建议升级后先执行一次 `php start.php restart`。
 
@@ -265,17 +278,6 @@ Redis 是配置可选项。自动进程已经支持 Redis 订阅；下面这个�
 ```bash
 php vendor/bin/config-center-listen
 ```
-
-## Webman 内应用更新
-
-如果项目需要配置更新后执行 reload，可以在业务项目独立 Webman process 的定时器里调用：
-
-```php
-$config = Kylin987\WebmanConfigCenter\ConfigLoader::load();
-(new Kylin987\WebmanConfigCenter\ApplyAdapter($config))->consume();
-```
-
-`ApplyAdapter` 只接受共享状态目录中带 HMAC 的请求，并且只会执行当前业务项目白名单里声明的 `reload_command`。
 
 ## 运行建议
 

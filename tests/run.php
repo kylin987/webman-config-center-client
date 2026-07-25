@@ -119,27 +119,33 @@ PHP);
         'namespace' => 'public',
         'config_root' => $configRoot,
         'state_dir' => $stateDir,
-        'apply_secret' => 'test-secret',
+        'log_channel' => 'default',
     ]);
+    $reloadLog = $tmp . '/reload.log';
+    $reloadCommand = PHP_BINARY . ' -r ' . escapeshellarg('file_put_contents(' . var_export($reloadLog, true) . ', "reload\n", FILE_APPEND);');
     $mapping = [
         'group' => 'DEFAULT_GROUP',
         'data_id' => 'app.php',
         'path' => 'app.php',
         'format' => 'php',
+        'reload_command' => $reloadCommand,
     ];
     $path = $configRoot . '/app.php';
 
     $result = $synchronizer->sync($mapping);
     assertTrue($result['status'] === 'updated', '首次同步应返回 updated');
     assertTrue(file_get_contents($path) === $servedContent, '首次同步未写入配置文件');
+    assertTrue((string) file_get_contents($reloadLog) === "reload\n", '首次同步未执行 reload_command');
 
     $result = $synchronizer->sync($mapping);
     assertTrue($result['status'] === 'unchanged', '同版本且本地一致时应返回 unchanged');
+    assertTrue((string) file_get_contents($reloadLog) === "reload\n", '配置未变化时不应执行 reload_command');
 
     unlink($path);
     $result = $synchronizer->sync($mapping);
     assertTrue($result['status'] === 'repaired', '同版本但本地文件缺失时应返回 repaired');
     assertTrue(file_get_contents($path) === $servedContent, '本地文件缺失后未自动修复');
+    assertTrue((string) file_get_contents($reloadLog) === "reload\nreload\n", '配置修复时未执行 reload_command');
 
     file_put_contents($path, "<?php return ['from' => 'local'];");
     $result = $synchronizer->sync($mapping);
