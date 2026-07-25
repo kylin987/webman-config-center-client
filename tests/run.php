@@ -206,6 +206,105 @@ PHP);
     exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);
     assertTrue($exitCode === 1, 'fail_on_error=true 时 config-center-sync 失败应返回非 0');
 
+    $eventLoopCompatScript = $tmp . '/event-loop-compat.php';
+    file_put_contents($eventLoopCompatScript, <<<'PHP'
+<?php
+namespace Workerman\Events {
+    interface EventInterface
+    {
+        public const EV_READ = 1;
+    }
+}
+
+namespace Workerman {
+    class Worker
+    {
+        public static $globalEvent = null;
+    }
+}
+
+namespace {
+    require __DIR__ . '/vendor/autoload.php';
+
+    use Kylin987\WebmanConfigCenter\Process\ConfigCenterProcess;
+    use Workerman\Events\EventInterface;
+    use Workerman\Worker;
+
+    function check(bool $condition, string $message): void
+    {
+        if (!$condition) {
+            throw new RuntimeException($message);
+        }
+    }
+
+    class LegacyEventLoop
+    {
+        public array $calls = [];
+        public $callback = null;
+
+        public function add($fd, $flag, $func, $args = []): bool
+        {
+            $this->calls[] = ['add', $flag];
+            $this->callback = $func;
+            return true;
+        }
+
+        public function del($fd, $flag): bool
+        {
+            $this->calls[] = ['del', $flag];
+            return true;
+        }
+    }
+
+    class ModernEventLoop
+    {
+        public array $calls = [];
+        public $callback = null;
+
+        public function onReadable($fd, $func): bool
+        {
+            $this->calls[] = ['onReadable'];
+            $this->callback = $func;
+            return true;
+        }
+
+        public function offReadable($fd): bool
+        {
+            $this->calls[] = ['offReadable'];
+            return true;
+        }
+    }
+
+    $process = new ConfigCenterProcess();
+    $register = new ReflectionMethod($process, 'registerRedisReadable');
+    $register->setAccessible(true);
+    $unregister = new ReflectionMethod($process, 'unregisterRedisReadable');
+    $unregister->setAccessible(true);
+    $socket = fopen('php://temp', 'r+');
+
+    Worker::$globalEvent = new LegacyEventLoop();
+    $register->invoke($process, $socket);
+    check(Worker::$globalEvent->calls === [['add', EventInterface::EV_READ]], 'Workerman v4 应使用 add(EV_READ)');
+    check(is_callable(Worker::$globalEvent->callback), 'Workerman v4 readable callback 未注册');
+    $unregister->invoke($process, $socket);
+    check(Worker::$globalEvent->calls === [['add', EventInterface::EV_READ], ['del', EventInterface::EV_READ]], 'Workerman v4 应使用 del(EV_READ)');
+
+    Worker::$globalEvent = new ModernEventLoop();
+    $register->invoke($process, $socket);
+    check(Worker::$globalEvent->calls === [['onReadable']], 'Workerman v5 应使用 onReadable');
+    check(is_callable(Worker::$globalEvent->callback), 'Workerman v5 readable callback 未注册');
+    $unregister->invoke($process, $socket);
+    check(Worker::$globalEvent->calls === [['onReadable'], ['offReadable']], 'Workerman v5 应使用 offReadable');
+
+    fclose($socket);
+    echo "event-loop-ok\n";
+}
+PHP);
+    $autoloadLink = $tmp . '/vendor';
+    symlink(dirname(__DIR__) . '/vendor', $autoloadLink);
+    exec(PHP_BINARY . ' ' . escapeshellarg($eventLoopCompatScript), $output, $exitCode);
+    assertTrue($exitCode === 0 && in_array('event-loop-ok', $output, true), 'Workerman 事件循环兼容测试失败：' . implode("\n", $output));
+
     $missingListenersRoot = $tmp . '/missing-listeners-root';
     mkdir($missingListenersRoot . '/config/plugin/kylin987/config-center', 0750, true);
     file_put_contents($missingListenersRoot . '/config/plugin/kylin987/config-center/config.php', "<?php\nreturn [];\n");

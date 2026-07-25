@@ -7,6 +7,7 @@ use Kylin987\WebmanConfigCenter\ConfigLoader;
 use Kylin987\WebmanConfigCenter\ConfigSynchronizer;
 use Kylin987\WebmanConfigCenter\RedisConnectionConfig;
 use RuntimeException;
+use Workerman\Events\EventInterface;
 use Workerman\Timer;
 use Workerman\Worker;
 
@@ -119,7 +120,7 @@ final class ConfigCenterProcess
             }
             $this->writeRedisCommand(['SUBSCRIBE', (string) ($this->config['event_channel'] ?? 'config-center:changed')]);
 
-            Worker::$globalEvent?->onReadable($socket, fn ($stream) => $this->onRedisReadable($stream));
+            $this->registerRedisReadable($socket);
 
             if ($this->redisWasDisconnected) {
                 $this->logger?->info('config-center redis listener recovered');
@@ -157,6 +158,57 @@ final class ConfigCenterProcess
                 'exception' => $exception,
             ]);
             $this->scheduleRedisReconnect();
+        }
+    }
+
+    /**
+     * Register socket readable callback with both Workerman v5 and v4 event-loop APIs.
+     *
+     * Workerman v5 exposes onReadable()/offReadable(), while older Webman projects on
+     * Workerman v4 only expose add()/del() with EventInterface::EV_READ.
+     *
+     * @param resource $socket
+     */
+    private function registerRedisReadable($socket): void
+    {
+        $event = Worker::$globalEvent ?? null;
+        if ($event === null) {
+            throw new RuntimeException('Workerman event loop 尚未初始化');
+        }
+
+        $callback = fn ($stream) => $this->onRedisReadable($stream);
+        if (method_exists($event, 'onReadable')) {
+            $event->onReadable($socket, $callback);
+            return;
+        }
+
+        if (method_exists($event, 'add')) {
+            $event->add($socket, EventInterface::EV_READ, $callback);
+            return;
+        }
+
+        throw new RuntimeException('当前 Workerman event loop 不支持 Redis 可读事件监听');
+    }
+
+    /**
+     * Remove socket readable callback with both Workerman v5 and v4 event-loop APIs.
+     *
+     * @param resource $socket
+     */
+    private function unregisterRedisReadable($socket): void
+    {
+        $event = Worker::$globalEvent ?? null;
+        if ($event === null) {
+            return;
+        }
+
+        if (method_exists($event, 'offReadable')) {
+            $event->offReadable($socket);
+            return;
+        }
+
+        if (method_exists($event, 'del')) {
+            $event->del($socket, EventInterface::EV_READ);
         }
     }
 
@@ -285,7 +337,7 @@ final class ConfigCenterProcess
     private function closeRedis(): void
     {
         if (is_resource($this->redisSocket)) {
-            Worker::$globalEvent?->offReadable($this->redisSocket);
+            $this->unregisterRedisReadable($this->redisSocket);
             @fclose($this->redisSocket);
         }
         $this->redisSocket = null;
