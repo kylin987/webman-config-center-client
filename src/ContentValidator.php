@@ -19,6 +19,7 @@ final class ContentValidator
         }
         match ($item->format) {
             'php' => $this->php($item->content),
+            'php_code' => $this->phpCode($item->content),
             'json' => json_decode($item->content, true, 512, JSON_THROW_ON_ERROR),
             'yaml', 'yml' => Yaml::parse($item->content, Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE),
             'ini' => $this->ini($item->content),
@@ -55,6 +56,11 @@ final class ContentValidator
         throw new InvalidArgumentException('PHP 配置不能包含动态表达式');
     }
 
+    private function phpCode(string $content): void
+    {
+        (new ParserFactory())->createForNewestSupportedVersion()->parse($content);
+    }
+
     private function ini(string $content): void
     {
         if (parse_ini_string($content, true, INI_SCANNER_RAW) === false) {
@@ -62,4 +68,3 @@ final class ContentValidator
         }
     }
 }
-

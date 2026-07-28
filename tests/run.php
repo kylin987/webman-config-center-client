@@ -19,6 +19,15 @@ try {
 } catch (\InvalidArgumentException) {
 }
 
+$content = "<?php\nclass Rule {}\n";
+$validator->validate(new ConfigItem('public', 'DEFAULT_GROUP', 'Rule.php', 'php_code', $content, 1, md5($content)), 'php_code');
+
+try {
+    $validator->validate(new ConfigItem('public', 'DEFAULT_GROUP', 'Rule.php', 'php', $content, 1, md5($content)), 'php');
+    throw new RuntimeException('PHP 类文件不应作为普通 php 配置通过校验');
+} catch (\InvalidArgumentException) {
+}
+
 function assertTrue(bool $condition, string $message): void
 {
     if (!$condition) {

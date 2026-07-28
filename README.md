@@ -152,6 +152,30 @@ return [
 
 修改 `listeners.php` 后执行 `php start.php reload`，插件进程会重新读取监听列表；如果你从早期版本升级过来，建议升级后先执行一次 `php start.php restart`。
 
+### PHP 配置和 PHP 代码文件
+
+`format => 'php'` 专门用于普通配置文件，内容必须是单个静态 `return` 表达式，例如：
+
+```php
+<?php
+
+return [
+    'debug' => false,
+];
+```
+
+如果需要同步 PHP 类文件、函数文件等代码文件，使用 `php_code`。客户端只做 PHP 语法校验，不要求 `return`：
+
+```php
+[
+    'group' => 'juhe',
+    'data_id' => 'HallRuleEvaluator.php',
+    'format' => 'php_code',
+    'path' => app_path() . '/common/library/HallRuleEvaluator.php',
+    'reload_command' => '',
+],
+```
+
 ## 业务代码读取配置
 
 客户端默认把远端配置文件写入业务项目的：
