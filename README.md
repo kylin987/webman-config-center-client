@@ -159,7 +159,9 @@ return [
 
 `listeners.php` 必须存在并返回数组。监听项不要写到 `config.php` 里，`config.php` 只负责服务端地址、账号密码、轮询、Redis、日志等运行参数。
 
-`reload_command` 是可选项，默认为空。只有远端配置实际更新或本地文件被修复时，客户端才会执行对应监听项里的 `reload_command`；配置未变化时不会执行。命令执行成功或失败都会写入当前 `log_channel`。
+`reload_command` 是可选项，默认为空。只有远端配置内容实际更新或本地文件被修复时，客户端才会执行对应监听项里的 `reload_command`；配置未变化时不会执行。命令执行成功或失败都会写入当前 `log_channel`。
+
+客户端以内容 md5 作为是否需要 reload 的核心判断：如果本地文件内容已经和远端一致，即使当前 Pod 没有自己的 state，或者远端 revision 因重复发布而增加，也只会补写 state 并返回 `unchanged`，不会执行 `reload_command`。这可以避免多 Pod 滚动发布时新 Pod 做无意义 reload。
 
 注意：客户端同步配置文件后，Webman 运行中已经加载到内存的 `config('cc.xxx')` 不会自动变化。如果业务希望配置发布后立即生效，需要给对应监听项配置 `reload_command`，或者在发布后手动 reload 项目。
 

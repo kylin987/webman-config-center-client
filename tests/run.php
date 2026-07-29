@@ -150,6 +150,49 @@ PHP);
     assertTrue($result['status'] === 'unchanged', '同版本且本地一致时应返回 unchanged');
     assertTrue((string) file_get_contents($reloadLog) === "reload\n", '配置未变化时不应执行 reload_command');
 
+    rmrf($stateDir);
+    $synchronizerWithoutState = new ConfigSynchronizer([
+        'endpoint' => 'http://127.0.0.1:' . $port,
+        'username' => 'client',
+        'password' => 'secret',
+        'namespace' => 'public',
+        'config_root' => $configRoot,
+        'state_dir' => $stateDir,
+        'log_channel' => 'default',
+    ]);
+    $result = $synchronizerWithoutState->sync($mapping);
+    assertTrue($result['status'] === 'unchanged', '本地文件内容已一致但缺少 state 时应返回 unchanged');
+    assertTrue((string) file_get_contents($reloadLog) === "reload\n", '本地文件内容已一致但缺少 state 时不应执行 reload_command');
+
+    rmrf($stateDir);
+    $servedRevision = 6;
+    $servedContent = "<?php return ['from' => 'remote'];";
+    file_put_contents($router, <<<'PHP'
+<?php
+$content = "<?php return ['from' => 'remote'];";
+if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) !== '/api/client/v1/config') {
+    http_response_code(404);
+    echo 'not found';
+    return;
+}
+header('Content-Type: application/json');
+echo json_encode([
+    'code' => 0,
+    'data' => [
+        'namespace' => $_GET['namespace'] ?? 'public',
+        'group' => $_GET['group'] ?? 'DEFAULT_GROUP',
+        'dataId' => $_GET['dataId'] ?? 'app.php',
+        'format' => 'php',
+        'content' => $content,
+        'revision' => 6,
+        'md5' => md5($content),
+    ],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+PHP);
+    $result = $synchronizerWithoutState->sync($mapping);
+    assertTrue($result['status'] === 'unchanged' && $result['revision'] === 6, '新 revision 但内容一致时应返回 unchanged');
+    assertTrue((string) file_get_contents($reloadLog) === "reload\n", '新 revision 但内容一致时不应执行 reload_command');
+
     unlink($path);
     $result = $synchronizer->sync($mapping);
     assertTrue($result['status'] === 'repaired', '同版本但本地文件缺失时应返回 repaired');

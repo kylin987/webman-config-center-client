@@ -57,7 +57,10 @@ final class ConfigSynchronizer
         $state = $this->state($item->key());
         $downloadedRevision = (int) ($state['downloaded_revision'] ?? 0);
         $path = $this->resolvePath((string) $mapping['path']);
-        if ($item->revision <= $downloadedRevision && $this->localFileMatches($path, $item->md5)) {
+        if ($this->localFileMatches($path, $item->md5)) {
+            if ($item->revision > $downloadedRevision || (string) ($state['md5'] ?? '') !== $item->md5) {
+                $this->writeState($item->key(), ['downloaded_revision' => $item->revision, 'md5' => $item->md5]);
+            }
             return ['key' => $item->key(), 'status' => 'unchanged', 'revision' => $item->revision];
         }
         $this->validator->validate($item, (string) $mapping['format']);
