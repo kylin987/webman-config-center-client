@@ -22,9 +22,7 @@ final class ConfigApiClient
     public function fetch(string $namespace, string $group, string $dataId): ConfigItem
     {
         $response = $this->client->get('api/client/v1/config', [
-            'headers' => [
-                'Accept' => 'application/json',
-            ],
+            'headers' => $this->headers(),
             'auth' => [
                 (string) ($this->config['username'] ?? ''),
                 (string) ($this->config['password'] ?? ''),
@@ -100,9 +98,7 @@ final class ConfigApiClient
         }
 
         $response = $this->client->post('api/client/v1/config/publish', [
-            'headers' => [
-                'Accept' => 'application/json',
-            ],
+            'headers' => $this->headers(),
             'auth' => [
                 (string) ($this->config['username'] ?? ''),
                 (string) ($this->config['password'] ?? ''),
@@ -162,6 +158,49 @@ final class ConfigApiClient
         $detail = $this->responseDetail($body);
 
         return $detail === '' ? $message : $message . '：' . $detail;
+    }
+
+    private function headers(): array
+    {
+        return [
+            'Accept' => 'application/json',
+            'X-Config-Center-Client-Name' => $this->clientName(),
+            'X-Config-Center-Hostname' => $this->hostname(),
+        ];
+    }
+
+    private function clientName(): string
+    {
+        $clientName = trim((string) ($this->config['client_name'] ?? ''));
+        if ($clientName !== '') {
+            return $this->shortHeaderValue($clientName, 128);
+        }
+
+        return $this->shortHeaderValue(basename(getcwd()) ?: 'unknown', 128);
+    }
+
+    private function hostname(): string
+    {
+        $hostname = gethostname();
+        if (!is_string($hostname) || $hostname === '') {
+            $hostname = php_uname('n');
+        }
+
+        return $this->shortHeaderValue((string) $hostname, 128);
+    }
+
+    private function shortHeaderValue(string $value, int $limit): string
+    {
+        $value = trim((string) preg_replace('/[\x00-\x1F\x7F]+/', '', $value));
+        if ($value === '') {
+            return 'unknown';
+        }
+
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $limit, 'UTF-8');
+        }
+
+        return substr($value, 0, $limit);
     }
 
     private function responseDetail(string $body): string

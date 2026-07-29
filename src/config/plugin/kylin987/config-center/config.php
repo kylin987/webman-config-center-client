@@ -13,6 +13,9 @@ return [
     // 配置中心 namespace，默认 public。一般不用改。
     'namespace' => 'public',
 
+    // 客户端项目名，用于服务端后台展示“最近读取”。不填时默认使用项目目录名。
+    'client_name' => basename(base_path()),
+
     // 远端配置同步到本地的根目录。默认写入业务项目 config/cc，可通过 config('cc.xxx') 读取。
     'config_root' => base_path() . '/config/cc',
 

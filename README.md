@@ -62,10 +62,13 @@ return [
 CONFIG_CENTER_ENDPOINT=http://config-center.example.com/
 CONFIG_CENTER_USERNAME=your-client-username
 CONFIG_CENTER_PASSWORD=your-client-password
+CONFIG_CENTER_CLIENT_NAME=yhs-web
 CONFIG_CENTER_REDIS_PASSWORD=your-redis-password
 ```
 
 其他普通配置建议直接写在 `config.php` 中，例如 namespace、Redis 地址、DB、频道、轮询间隔、日志 channel 等。
+
+`client_name` 用于服务端后台展示“某个配置最近被哪些项目读取过”。如果不配置，客户端会默认使用项目目录名；请求时还会自动携带当前 Pod/主机名。
 
 ### 多 Pod 共享目录和状态目录
 

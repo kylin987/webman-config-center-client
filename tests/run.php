@@ -82,6 +82,11 @@ if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) !== '/api/client/v1/config'
     echo 'not found';
     return;
 }
+if (empty($_SERVER['HTTP_X_CONFIG_CENTER_CLIENT_NAME']) || empty($_SERVER['HTTP_X_CONFIG_CENTER_HOSTNAME'])) {
+    http_response_code(400);
+    echo json_encode(['code' => 400, 'message' => 'missing client headers']);
+    return;
+}
 header('Content-Type: application/json');
 echo json_encode([
     'code' => 0,
@@ -173,6 +178,11 @@ $content = "<?php return ['from' => 'remote'];";
 if (parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) !== '/api/client/v1/config') {
     http_response_code(404);
     echo 'not found';
+    return;
+}
+if (empty($_SERVER['HTTP_X_CONFIG_CENTER_CLIENT_NAME']) || empty($_SERVER['HTTP_X_CONFIG_CENTER_HOSTNAME'])) {
+    http_response_code(400);
+    echo json_encode(['code' => 400, 'message' => 'missing client headers']);
     return;
 }
 header('Content-Type: application/json');
