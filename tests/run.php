@@ -205,6 +205,24 @@ return [
 PHP);
     $loaded = ConfigLoader::load($commandRoot);
     assertTrue(count($loaded['items']) === 1 && $loaded['items'][0]['data_id'] === 'app.php', 'listeners.php 未正确加载为监听项');
+    $safeHostname = preg_replace('/[^A-Za-z0-9._-]/', '_', (string) gethostname());
+    assertTrue(basename((string) $loaded['state_dir']) === $safeHostname, 'state_dir 默认应按主机名隔离');
+
+    $sharedStateConfig = str_replace(
+        "'state_dir' => sys_get_temp_dir() . '/config-center-client-test-state',",
+        "'state_dir' => sys_get_temp_dir() . '/config-center-client-test-state',\n    'state_dir_host_isolation' => false,",
+        (string) file_get_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php')
+    );
+    file_put_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php', $sharedStateConfig);
+    $loaded = ConfigLoader::load($commandRoot);
+    assertTrue(basename((string) $loaded['state_dir']) === 'config-center-client-test-state', 'state_dir_host_isolation=false 时不应追加主机名');
+
+    $isolatedStateConfig = str_replace(
+        "\n    'state_dir_host_isolation' => false,",
+        '',
+        $sharedStateConfig
+    );
+    file_put_contents($commandRoot . '/config/plugin/kylin987/config-center/config.php', $isolatedStateConfig);
 
     $syncCommand = PHP_BINARY . ' ' . escapeshellarg(dirname(__DIR__) . '/bin/config-center-sync');
     exec('cd ' . escapeshellarg($commandRoot) . ' && ' . $syncCommand . ' 2>/dev/null', $output, $exitCode);

@@ -23,7 +23,7 @@ final class ConfigLoader
                 if (!is_array($config)) {
                     throw new RuntimeException('配置文件必须返回数组：' . $path);
                 }
-                return self::withListeners($config, dirname($path));
+                return self::withListeners(self::normalizeStateDirectory($config), dirname($path));
             }
         }
 
@@ -46,6 +46,31 @@ final class ConfigLoader
 
         $config['items'] = $listeners;
         return $config;
+    }
+
+    private static function normalizeStateDirectory(array $config): array
+    {
+        if (empty($config['state_dir']) || ($config['state_dir_host_isolation'] ?? true) === false) {
+            return $config;
+        }
+
+        $hostname = self::hostname();
+        $stateDir = rtrim((string) $config['state_dir'], '/');
+        if ($hostname !== '' && basename($stateDir) !== $hostname) {
+            $config['state_dir'] = $stateDir . '/' . $hostname;
+        }
+
+        return $config;
+    }
+
+    private static function hostname(): string
+    {
+        $hostname = gethostname();
+        if (!is_string($hostname) || $hostname === '') {
+            $hostname = php_uname('n');
+        }
+
+        return preg_replace('/[^A-Za-z0-9._-]/', '_', (string) $hostname) ?: '';
     }
 
     private static function loadEnv(string $basePath): void

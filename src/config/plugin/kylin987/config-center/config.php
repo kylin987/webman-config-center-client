@@ -16,8 +16,11 @@ return [
     // 远端配置同步到本地的根目录。默认写入业务项目 config/cc，可通过 config('cc.xxx') 读取。
     'config_root' => base_path() . '/config/cc',
 
-    // 客户端运行状态目录，用于记录已同步版本和文件 md5。
+    // 客户端运行状态根目录，用于记录已同步版本和文件 md5。
     'state_dir' => runtime_path() . '/config-center',
+
+    // 是否按主机名隔离 state_dir。多 Pod 共享同一工作目录时必须开启，避免只有一个 Pod 执行 reload_command。
+    'state_dir_host_isolation' => true,
 
     // 连接配置中心服务端的超时时间，单位秒。
     'connect_timeout' => 3,

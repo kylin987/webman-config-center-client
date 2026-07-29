@@ -67,6 +67,29 @@ CONFIG_CENTER_REDIS_PASSWORD=your-redis-password
 
 其他普通配置建议直接写在 `config.php` 中，例如 namespace、Redis 地址、DB、频道、轮询间隔、日志 channel 等。
 
+### 多 Pod 共享目录和状态目录
+
+客户端会把远端配置写入 `config/cc`，这个目录可以被多个 Pod 共享。但同步状态目录 `state_dir` 默认会按主机名再隔离一层：
+
+```php
+'state_dir' => runtime_path() . '/config-center',
+'state_dir_host_isolation' => true,
+```
+
+实际使用时会变成类似：
+
+```text
+runtime/config-center/<hostname>/
+```
+
+这样做是为了兼容多 Pod 共享同一套项目目录的部署方式。如果所有 Pod 共用同一个 `state_dir`，可能出现一个 Pod 已经写入最新 state，其他 Pod 收到 Redis 通知后判断为 `unchanged`，从而不执行自己的 `reload_command`。默认按主机名隔离后，每个 Pod 都会独立记录同步状态，并在配置更新时执行自己的 reload。
+
+如果你明确只有单实例，或者确实希望多个进程共享同一份同步状态，可以关闭：
+
+```php
+'state_dir_host_isolation' => false,
+```
+
 如果服务端开启了客户端 IP 白名单，并且公网域名可能解析到 IPv6，可以在 `config.php` 中强制客户端走 IPv4：
 
 ```php
@@ -137,6 +160,8 @@ return [
 `listeners.php` 必须存在并返回数组。监听项不要写到 `config.php` 里，`config.php` 只负责服务端地址、账号密码、轮询、Redis、日志等运行参数。
 
 `reload_command` 是可选项，默认为空。只有远端配置实际更新或本地文件被修复时，客户端才会执行对应监听项里的 `reload_command`；配置未变化时不会执行。命令执行成功或失败都会写入当前 `log_channel`。
+
+注意：客户端同步配置文件后，Webman 运行中已经加载到内存的 `config('cc.xxx')` 不会自动变化。如果业务希望配置发布后立即生效，需要给对应监听项配置 `reload_command`，或者在发布后手动 reload 项目。
 
 如果确实希望某个配置更新后自动 reload，可以这样写：
 
